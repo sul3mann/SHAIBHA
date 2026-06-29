@@ -1,0 +1,117 @@
+import { useEffect, useMemo, useState } from 'react'
+import { loadCustomers } from '../services/customerService'
+import { loadEntries, loadSettings, addEntry, updateExistingEntry, deleteEntry, duplicateEntry } from '../services/entryService'
+import type { Customer } from '../types/customer'
+import type { Entry, EntryFormValues } from '../types/entry'
+import type { WorkshopSettings } from '../types/settings'
+
+export function useEntries() {
+  const [entries, setEntries] = useState<Entry[]>([])
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [settings, setSettings] = useState<WorkshopSettings | null>(null)
+  const [search, setSearch] = useState('')
+  const [selectedCustomerId, setSelectedCustomerId] = useState('')
+  const [selectedDate, setSelectedDate] = useState('')
+  const [selectedDirection, setSelectedDirection] = useState<'receive' | 'give' | ''>('')
+  const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null)
+  const [isModalOpen, setModalOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Entry | null>(null)
+
+  useEffect(() => {
+    setEntries(loadEntries())
+    setCustomers(loadCustomers())
+    setSettings(loadSettings())
+  }, [])
+
+  const filteredEntries = useMemo(() => {
+    const query = search.trim().toLowerCase()
+
+    return entries
+      .filter((entry) => {
+        const matchesCustomer = !selectedCustomerId || entry.customerId === selectedCustomerId
+        const matchesDate = !selectedDate || entry.date === selectedDate
+        const matchesDirection = !selectedDirection || entry.direction === selectedDirection
+        const matchesQuery = !query || entry.notes?.toLowerCase().includes(query) || entry.invoiceNumber?.toLowerCase().includes(query)
+
+        return matchesCustomer && matchesDate && matchesDirection && matchesQuery
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  }, [entries, search, selectedCustomerId, selectedDate, selectedDirection])
+
+  const openCreate = () => {
+    setSelectedEntry(null)
+    setModalOpen(true)
+  }
+
+  const openEdit = (entry: Entry) => {
+    setSelectedEntry(entry)
+    setModalOpen(true)
+  }
+
+  const closeModal = () => {
+    setSelectedEntry(null)
+    setModalOpen(false)
+  }
+
+  const saveEntry = (values: EntryFormValues) => {
+    if (!settings) return
+
+    if (selectedEntry) {
+      const updated = updateExistingEntry(selectedEntry, values, settings)
+      setEntries((current) => current.map((entry) => (entry.id === selectedEntry.id ? updated : entry)))
+    } else {
+      const created = addEntry(values, settings)
+      setEntries((current) => [created, ...current])
+    }
+
+    closeModal()
+  }
+
+  const requestDeleteEntry = (entry: Entry) => {
+    setDeleteTarget(entry)
+  }
+
+  const cancelDelete = () => {
+    setDeleteTarget(null)
+  }
+
+  const confirmDeleteEntry = () => {
+    if (!deleteTarget) return
+    deleteEntry(deleteTarget.id)
+    setEntries((current) => current.filter((entry) => entry.id !== deleteTarget.id))
+    setDeleteTarget(null)
+  }
+
+  const duplicateExistingEntry = (entry: Entry) => {
+    if (!settings) return
+    const duplicated = duplicateEntry(entry.id, settings)
+    if (duplicated) {
+      setEntries((current) => [duplicated, ...current])
+    }
+  }
+
+  return {
+    entries: filteredEntries,
+    customers,
+    settings,
+    search,
+    setSearch,
+    selectedCustomerId,
+    setSelectedCustomerId,
+    selectedDate,
+    setSelectedDate,
+    selectedDirection,
+    setSelectedDirection,
+    selectedEntry,
+    isModalOpen,
+    deleteTarget,
+    openCreate,
+    openEdit,
+    closeModal,
+    saveEntry,
+    requestDeleteEntry,
+    cancelDelete,
+    confirmDeleteEntry,
+    duplicateExistingEntry,
+  }
+}
