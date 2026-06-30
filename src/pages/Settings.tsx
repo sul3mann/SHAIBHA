@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { formulaMethods } from '../types/entry'
 import { loadSettings, saveSettings, exportData, importData, clearAllDataWithLedger } from '../services/entryService'
+import { addActivityLogEntry, buildBackupPayload, exportBackupJson, importBackupPayload, validateBackupPayload } from '../services/activityService'
 import type { WorkshopSettings } from '../types/settings'
 
 export default function SettingsPage() {
@@ -26,12 +27,14 @@ export default function SettingsPage() {
     setTimeout(() => {
       saveSettings(localSettings)
       setSettings(localSettings)
+      addActivityLogEntry('Settings changed', `Updated settings for ${localSettings.workshopName}`)
       setIsSaving(false)
     }, 300)
   }
 
   const handleExportData = () => {
     const data = exportData()
+    addActivityLogEntry('Data exported', 'Exported data from settings page')
     const element = document.createElement('a')
     element.setAttribute('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(data))
     element.setAttribute('download', 'shaibah-warsha-export.json')
@@ -52,6 +55,7 @@ export default function SettingsPage() {
         reader.onload = (event) => {
           const content = event.target?.result as string
           if (importData(content)) {
+            addActivityLogEntry('Data imported', 'Imported data from uploaded backup file')
             alert('Data imported successfully')
             window.location.reload()
           } else {
@@ -66,8 +70,47 @@ export default function SettingsPage() {
 
   const handleClearAll = () => {
     clearAllDataWithLedger()
+    addActivityLogEntry('Data cleared', 'Cleared all local workshop data')
     alert('All data cleared')
     window.location.reload()
+  }
+
+  const handleBackupDownload = () => {
+    const payload = buildBackupPayload()
+    exportBackupJson(payload)
+    addActivityLogEntry('Data exported', 'Downloaded full backup JSON')
+  }
+
+  const handleBackupImport = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0]
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = (loadEvent) => {
+        try {
+          const parsed = JSON.parse(loadEvent.target?.result as string)
+          if (!validateBackupPayload(parsed)) {
+            alert('Invalid backup file. Please select a valid Shaibah backup export.')
+            return
+          }
+          const imported = importBackupPayload(parsed)
+          if (imported) {
+            addActivityLogEntry('Data imported', 'Restored data from backup JSON')
+            alert('Backup restored successfully')
+            window.location.reload()
+          } else {
+            alert('The backup file could not be restored.')
+          }
+        } catch {
+          alert('The backup file could not be read.')
+        }
+      }
+      reader.readAsText(file)
+    }
+    input.click()
   }
 
   if (!settings || !localSettings) {
@@ -163,6 +206,14 @@ export default function SettingsPage() {
           <Button variant="outline" onClick={handleImportData}>
             <Upload className="mr-2 h-4 w-4" />
             Import Data
+          </Button>
+          <Button variant="outline" onClick={handleBackupDownload}>
+            <Download className="mr-2 h-4 w-4" />
+            Backup JSON
+          </Button>
+          <Button variant="outline" onClick={handleBackupImport}>
+            <Upload className="mr-2 h-4 w-4" />
+            Restore Backup
           </Button>
           <Button
             variant="ghost"

@@ -6,6 +6,7 @@ import {
   updateCustomerFromForm,
 } from '../services/customerService'
 import { addNotification } from '../services/notificationService'
+import { addActivityLogEntry } from '../services/activityService'
 import type { Customer, CustomerFormValues } from '../types/customer'
 
 export type CustomerSortKey = 'fullName' | 'city' | 'createdAt' | 'updatedAt'
@@ -75,6 +76,7 @@ export function useCustomers() {
             : customer,
         )
         addNotification(`Customer updated: ${values.fullName}`, 'success')
+        addActivityLogEntry('Customer edited', `Updated ${values.fullName}`, values.fullName)
         return updated
       })
     } else {
@@ -86,6 +88,7 @@ export function useCustomers() {
       setCustomers((current) => {
         const created = createCustomerFromForm(values)
         addNotification(`Customer added: ${created.fullName}`, 'success')
+        addActivityLogEntry('Customer added', `Added ${created.fullName}`, created.fullName)
         return [created, ...current]
       })
     }
@@ -106,6 +109,7 @@ export function useCustomers() {
     setCustomers((current) => {
       const remaining = current.filter((customer) => customer.id !== deleteTarget.id)
       addNotification(`Customer deleted: ${deleteTarget.fullName}`, 'warning')
+      addActivityLogEntry('Customer deleted', `Deleted ${deleteTarget.fullName}`, deleteTarget.fullName)
       return remaining
     })
     setDeleteTarget(null)

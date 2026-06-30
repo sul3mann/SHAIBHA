@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Search, BookOpen, BadgeCheck, FileText, Camera } from 'lucide-react'
+import { ArrowLeft, Search, BookOpen, BadgeCheck, FileText, Camera, Printer, Download } from 'lucide-react'
 import { Card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Table } from '../components/ui/Table'
@@ -9,6 +9,7 @@ import { useLedger } from '../hooks/useLedger'
 import { calculateCustomerLedgerSummary } from '../services/ledgerService'
 import { loadCustomers } from '../services/customerService'
 import type { Customer } from '../types/customer'
+import { downloadTextFile } from '../utils/reports'
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString('en-US', {
@@ -24,6 +25,7 @@ export default function CustomerLedgerDetail() {
   const { transactions } = useLedger(customerId)
   const [query, setQuery] = useState('')
   const [customers] = useState<Customer[]>(() => loadCustomers())
+  const [showPrintView, setShowPrintView] = useState(false)
 
   const customer = customers.find((c) => c.id === customerId)
   const summary = calculateCustomerLedgerSummary(customerId)
@@ -51,6 +53,41 @@ export default function CustomerLedgerDetail() {
         return acc
       }, [])
   }, [transactions, query])
+
+  const handlePrint = () => {
+    setShowPrintView(true)
+    window.setTimeout(() => window.print(), 150)
+  }
+
+  const handleExportCsv = () => {
+    const lines: string[][] = []
+    lines.push(['Date', 'Direction', 'Mode', '24K (g)', '21K (g)', 'Labour (SAR)', 'VAT (SAR)', 'Grand Total (SAR)', 'Invoice', 'Notes'])
+    filteredTransactions.forEach((transaction) => {
+      lines.push([
+        transaction.date,
+        transaction.direction === 'receive' ? 'Gold Received' : 'Gold Given',
+        transaction.entryMode,
+        transaction.weight24k.toFixed(2),
+        transaction.weight21k.toFixed(2),
+        transaction.labourAmount.toFixed(2),
+        transaction.vatAmount.toFixed(2),
+        transaction.grandTotal.toFixed(2),
+        transaction.invoiceNumber || '—',
+        transaction.notes,
+      ])
+    })
+    const csvContent = lines.map((row) => row.join(',')).join('\n')
+    downloadTextFile(`${customer?.fullName ?? 'customer'}-ledger.csv`, csvContent, 'text/csv;charset=utf-8')
+  }
+
+  const handleExportJson = () => {
+    const payload = {
+      customer: customer?.fullName ?? 'Customer',
+      summary,
+      transactions: filteredTransactions,
+    }
+    downloadTextFile(`${customer?.fullName ?? 'customer'}-ledger.json`, JSON.stringify(payload, null, 2), 'application/json;charset=utf-8')
+  }
 
   if (!customerId || !customer) {
     return (
@@ -121,15 +158,29 @@ export default function CustomerLedgerDetail() {
             <h2 className="text-xl font-semibold text-slate-950">Transaction history</h2>
             <p className="mt-1 text-sm text-slate-600">All entries for this customer sorted by newest first</p>
           </div>
-          <div className="flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            <Search className="mr-2 h-4 w-4 text-slate-400" />
-            <input
-              className="w-full bg-transparent text-sm outline-none"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by invoice or notes"
-              aria-label="Search transactions"
-            />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              <Search className="mr-2 h-4 w-4 text-slate-400" />
+              <input
+                className="w-full bg-transparent text-sm outline-none"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search by invoice or notes"
+                aria-label="Search transactions"
+              />
+            </div>
+            <Button variant="outline" onClick={handlePrint}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print
+            </Button>
+            <Button variant="outline" onClick={handleExportCsv}>
+              <Download className="mr-2 h-4 w-4" />
+              CSV
+            </Button>
+            <Button variant="outline" onClick={handleExportJson}>
+              <Download className="mr-2 h-4 w-4" />
+              JSON
+            </Button>
           </div>
         </div>
 
@@ -229,6 +280,66 @@ export default function CustomerLedgerDetail() {
           </div>
         )}
       </Card>
+
+      {showPrintView ? (
+        <div className="hidden print:block">
+          <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-8 text-slate-900">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Shaibah Warsha</p>
+                <h2 className="mt-2 text-2xl font-semibold">Customer statement</h2>
+                <p className="mt-2 text-sm text-slate-600">{customer.fullName}</p>
+              </div>
+              <div className="text-right text-sm text-slate-600">
+                <p>Generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                <p>{summary.totalTransactions} transactions</p>
+              </div>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-sm text-slate-600">Gold received</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900">{summary.goldReceivedTotal.toFixed(2)}g</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-sm text-slate-600">Gold given</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900">{summary.goldGivenTotal.toFixed(2)}g</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-sm text-slate-600">Balance</p>
+                <p className={`mt-2 text-lg font-semibold ${summary.balance >= 0 ? 'text-green-600' : 'text-rose-600'}`}>{summary.balance.toFixed(2)}g</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-600">
+                    <th className="px-3 py-3">Date</th>
+                    <th className="px-3 py-3">Direction</th>
+                    <th className="px-3 py-3">Mode</th>
+                    <th className="px-3 py-3">21K</th>
+                    <th className="px-3 py-3">Labour</th>
+                    <th className="px-3 py-3">VAT</th>
+                    <th className="px-3 py-3">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTransactions.map((entry) => (
+                    <tr key={entry.id} className="border-b border-slate-100 last:border-b-0">
+                      <td className="px-3 py-3">{formatDate(entry.date)}</td>
+                      <td className="px-3 py-3">{entry.direction === 'receive' ? 'Gold Received' : 'Gold Given'}</td>
+                      <td className="px-3 py-3">{entry.entryMode}</td>
+                      <td className="px-3 py-3">{entry.weight21k.toFixed(2)}g</td>
+                      <td className="px-3 py-3">SAR {entry.labourAmount.toFixed(2)}</td>
+                      <td className="px-3 py-3">SAR {entry.vatAmount.toFixed(2)}</td>
+                      <td className="px-3 py-3 font-semibold">SAR {entry.grandTotal.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

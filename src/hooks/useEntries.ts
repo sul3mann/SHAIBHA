@@ -3,6 +3,7 @@ import { loadCustomers } from '../services/customerService'
 import { loadEntries, loadSettings, addEntry, updateExistingEntry, deleteEntry, duplicateEntry } from '../services/entryService'
 import { LEDGER_CHANGED_EVENT } from '../services/ledgerService'
 import { addNotification } from '../services/notificationService'
+import { addActivityLogEntry } from '../services/activityService'
 import type { Customer } from '../types/customer'
 import type { Entry, EntryFormValues } from '../types/entry'
 import type { WorkshopSettings } from '../types/settings'
@@ -71,10 +72,12 @@ export function useEntries() {
       const updated = updateExistingEntry(selectedEntry, values, settings)
       setEntries((current) => current.map((entry) => (entry.id === selectedEntry.id ? updated : entry)))
       addNotification('Entry updated', 'success')
+      addActivityLogEntry('Entry edited', `Edited entry for ${selectedEntry.customerId}`, 'System')
     } else {
       const created = addEntry(values, settings)
       setEntries((current) => [created, ...current])
       addNotification('Entry added', 'success')
+      addActivityLogEntry('Entry added', `Added entry for ${values.customerId}`, 'System')
     }
 
     closeModal()
@@ -93,6 +96,7 @@ export function useEntries() {
     deleteEntry(deleteTarget.id)
     setEntries((current) => current.filter((entry) => entry.id !== deleteTarget.id))
     addNotification('Entry deleted', 'warning')
+    addActivityLogEntry('Entry deleted', `Deleted entry ${deleteTarget.id}`, 'System')
     setDeleteTarget(null)
   }
 
@@ -102,6 +106,7 @@ export function useEntries() {
     if (duplicated) {
       setEntries((current) => [duplicated, ...current])
       addNotification('Entry duplicated', 'info')
+      addActivityLogEntry('Entry duplicated', `Duplicated entry ${entry.id}`, 'System')
     }
   }
 

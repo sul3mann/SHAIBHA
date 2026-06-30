@@ -40,11 +40,32 @@ export default function Dashboard() {
     let goldGiven = 0
     let labourTotal = 0
     let vatTotal = 0
+    let todayEntries = 0
+    let monthLabour = 0
+    let monthGoldReceived = 0
+    let monthGoldGiven = 0
+
+    const today = new Date().toISOString().slice(0, 10)
+    const currentMonth = new Date().toISOString().slice(0, 7)
 
     entries.forEach((entry) => {
       const weight21k = Number(entry.weight21k ?? 0)
       const labourAmount = Number(entry.labourAmount ?? 0)
       const vatAmount = Number(entry.vatAmount ?? 0)
+      const entryMonth = entry.date.slice(0, 7)
+
+      if (entry.date === today) {
+        todayEntries += 1
+      }
+
+      if (entryMonth === currentMonth) {
+        monthLabour += labourAmount
+        if (entry.direction === 'receive') {
+          monthGoldReceived += weight21k
+        } else {
+          monthGoldGiven += weight21k
+        }
+      }
 
       if (entry.direction === 'receive') {
         goldReceived += weight21k
@@ -63,6 +84,10 @@ export default function Dashboard() {
       labourTotal,
       vatTotal,
       balance: goldReceived - goldGiven,
+      todayEntries,
+      monthLabour,
+      monthGoldReceived,
+      monthGoldGiven,
     }
   }, [customers, entries])
 
@@ -220,6 +245,31 @@ export default function Dashboard() {
             <div className="rounded-2xl bg-slate-50 p-4">
               <p className="text-sm text-slate-600">Total VAT</p>
               <p className="mt-2 text-2xl font-semibold text-slate-950">{stats.vatTotal.toFixed(2)} SAR</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="space-y-4">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-950">Report Summary</h2>
+            <p className="mt-1 text-sm text-slate-600">Simple dashboard cards for the current reporting view</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <p className="text-sm text-slate-600">Today&apos;s entries</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-950">{stats.todayEntries}</p>
+            </div>
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <p className="text-sm text-slate-600">This month&apos;s labour</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-950">SAR {stats.monthLabour.toFixed(2)}</p>
+            </div>
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <p className="text-sm text-slate-600">This month&apos;s gold received</p>
+              <p className="mt-2 text-2xl font-semibold text-green-600">{stats.monthGoldReceived.toFixed(2)}g</p>
+            </div>
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <p className="text-sm text-slate-600">This month&apos;s gold given</p>
+              <p className="mt-2 text-2xl font-semibold text-rose-600">{stats.monthGoldGiven.toFixed(2)}g</p>
             </div>
           </div>
         </Card>

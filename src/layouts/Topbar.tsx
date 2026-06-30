@@ -3,16 +3,33 @@ import { Link } from 'react-router-dom'
 import { Bell, LayoutDashboard, Search, X } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { loadNotifications, NOTIFICATIONS_CHANGED_EVENT, type NotificationItem } from '../services/notificationService'
+import { ACTIVITY_LOG_CHANGED_EVENT, loadActivityLog } from '../services/activityService'
+import { useLanguage } from '../context/LanguageContext'
 
 export function Topbar() {
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
+  const { isUrdu, dir, language, setLanguage, t } = useLanguage()
 
   useEffect(() => {
-    const sync = () => setNotifications(loadNotifications())
+    const sync = () => {
+      const recentActivity = loadActivityLog().slice(0, 8)
+      const derived: NotificationItem[] = recentActivity.map((entry) => ({
+        id: entry.id,
+        message: `${entry.action}: ${entry.details}`,
+        type: entry.action.includes('deleted') || entry.action.includes('error') ? 'warning' : 'info',
+        createdAt: entry.createdAt,
+      }))
+      setNotifications(derived.length > 0 ? derived : loadNotifications())
+    }
+
     sync()
     window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, sync)
-    return () => window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, sync)
+    window.addEventListener(ACTIVITY_LOG_CHANGED_EVENT, sync)
+    return () => {
+      window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, sync)
+      window.removeEventListener(ACTIVITY_LOG_CHANGED_EVENT, sync)
+    }
   }, [])
 
   return (
@@ -24,7 +41,7 @@ export function Topbar() {
           </div>
           <div>
             <p className="text-sm uppercase tracking-[0.4em] text-slate-500 md:text-xs">Workshop Management</p>
-            <h2 className="text-lg font-semibold text-slate-950">Dashboard Overview</h2>
+            <h2 className="text-lg font-semibold text-slate-950">{isUrdu ? 'ڈیش بورڈ جائزہ' : 'Dashboard Overview'}</h2>
           </div>
         </div>
 
@@ -33,33 +50,40 @@ export function Topbar() {
             <Search className="h-4 w-4" />
             <input
               type="search"
-              placeholder="Search records"
+              placeholder={t('topbar.searchPlaceholder')}
               className="w-full bg-transparent text-sm outline-none"
             />
           </div>
           <Button variant="ghost" className="hidden sm:inline-flex" onClick={() => setOpen((value) => !value)}>
-            Notifications
+            {t('topbar.notifications')}
           </Button>
+          <button
+            type="button"
+            onClick={() => setLanguage(language === 'en' ? 'ur' : 'en')}
+            className="hidden rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:border-slate-300 sm:inline-flex"
+          >
+            {t('toggleLanguage')}
+          </button>
           <Link
             to="/settings"
             className="hidden rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:border-slate-300 sm:inline-flex"
           >
-            Settings
+            {t('topbar.settings')}
           </Link>
           <div className="relative">
             <button className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 shadow-sm transition hover:border-slate-300" onClick={() => setOpen((value) => !value)}>
               <Bell className="h-5 w-5" />
             </button>
             {open && (
-              <div className="absolute right-0 mt-3 w-80 rounded-3xl border border-slate-200 bg-white p-4 shadow-xl">
+              <div className={`absolute right-0 mt-3 w-80 rounded-3xl border border-slate-200 bg-white p-4 shadow-xl ${dir === 'rtl' ? 'text-right' : 'text-left'}`}>
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-slate-950">Notifications</p>
+                  <p className="text-sm font-semibold text-slate-950">{t('topbar.notifications')}</p>
                   <button type="button" onClick={() => setOpen(false)} className="rounded-full p-1 text-slate-500 hover:bg-slate-100">
                     <X className="h-4 w-4" />
                   </button>
                 </div>
                 {notifications.length === 0 ? (
-                  <p className="text-sm text-slate-600">No notifications yet.</p>
+                  <p className="text-sm text-slate-600">{t('notifications.empty')}</p>
                 ) : (
                   <div className="space-y-2">
                     {notifications.map((notification) => (
