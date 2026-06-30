@@ -22,7 +22,12 @@ export function CustomerRow({ customer, onEdit, onDelete, onView }: CustomerRowP
 
   return (
     <tr className="border-b border-slate-200 last:border-b-0 cursor-pointer hover:bg-slate-50" onClick={handleView}>
-      <td className="px-4 py-4 text-sm font-medium text-slate-900">{customer.fullName}</td>
+      <td className="px-4 py-4 text-sm font-medium text-slate-900">
+        <div className="flex items-center gap-3">
+          {customer.photo ? <img src={customer.photo} alt={customer.fullName} className="h-10 w-10 rounded-full object-cover" /> : <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gold/10 text-sm font-semibold text-gold">{customer.fullName.charAt(0).toUpperCase()}</div>}
+          <span>{customer.fullName}</span>
+        </div>
+      </td>
       <td className="px-4 py-4 text-sm text-slate-600">{customer.phoneNumber}</td>
       <td className="px-4 py-4 flex items-center gap-2 text-sm text-slate-600">
         <MessageCircleMore className="h-4 w-4 text-green-600" />

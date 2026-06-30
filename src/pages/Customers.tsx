@@ -10,7 +10,7 @@ import { CustomerCard } from '../components/CustomerCard'
 import { CustomerRow } from '../components/CustomerRow'
 import { CustomerForm } from '../components/CustomerForm'
 import { useCustomers } from '../hooks/useCustomers'
-import { calculateCustomerLedgerSummary } from '../services/ledgerService'
+import { calculateCustomerLedgerSummary, LEDGER_CHANGED_EVENT } from '../services/ledgerService'
 import type { CustomerWithLedger } from '../types/customer'
 
 export default function Customers() {
@@ -35,20 +35,41 @@ export default function Customers() {
   const [customersWithLedger, setCustomersWithLedger] = useState<CustomerWithLedger[]>([])
 
   useEffect(() => {
-    const updated = filteredCustomers.map((customer) => {
-      const summary = calculateCustomerLedgerSummary(customer.id)
-      return {
-        ...customer,
-        ...summary,
-      } as CustomerWithLedger
-    })
-    setCustomersWithLedger(updated)
+    const syncLedgerData = () => {
+      const updated = filteredCustomers.map((customer) => {
+        const summary = calculateCustomerLedgerSummary(customer.id)
+        return {
+          ...customer,
+          ...summary,
+        } as CustomerWithLedger
+      })
+      setCustomersWithLedger(updated)
+    }
+
+    syncLedgerData()
+    window.addEventListener(LEDGER_CHANGED_EVENT, syncLedgerData)
+
+    return () => {
+      window.removeEventListener(LEDGER_CHANGED_EVENT, syncLedgerData)
+    }
   }, [filteredCustomers])
 
   const resultsLabel = useMemo(() => {
     if (!filteredCustomers.length) return 'No customers found'
     return `${filteredCustomers.length} ${filteredCustomers.length === 1 ? 'customer' : 'customers'}`
   }, [filteredCustomers.length])
+
+  const totals = useMemo(() => {
+    return customersWithLedger.reduce(
+      (acc, customer) => ({
+        received: acc.received + (customer.goldReceivedTotal ?? 0),
+        given: acc.given + (customer.goldGivenTotal ?? 0),
+        labour: acc.labour + (customer.labourTotal ?? 0),
+        balance: acc.balance + (customer.balance ?? 0),
+      }),
+      { received: 0, given: 0, labour: 0, balance: 0 },
+    )
+  }, [customersWithLedger])
 
   return (
     <div className="space-y-6">
@@ -147,6 +168,24 @@ export default function Customers() {
               <p className="mt-2 text-3xl font-semibold text-slate-950">
                 {filteredCustomers[0] ? new Date(filteredCustomers[0].updatedAt).toLocaleDateString() : '—'}
               </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-3xl border border-gold/20 bg-gold/5 p-4">
+              <p className="text-sm text-slate-500">Gold received</p>
+              <p className="mt-1 text-xl font-semibold text-gold">{totals.received.toFixed(1)}g</p>
+            </div>
+            <div className="rounded-3xl border border-slate-200 bg-white p-4">
+              <p className="text-sm text-slate-500">Gold given</p>
+              <p className="mt-1 text-xl font-semibold text-slate-950">{totals.given.toFixed(1)}g</p>
+            </div>
+            <div className="rounded-3xl border border-slate-200 bg-white p-4">
+              <p className="text-sm text-slate-500">Labour total</p>
+              <p className="mt-1 text-xl font-semibold text-slate-950">{totals.labour.toFixed(2)} SAR</p>
+            </div>
+            <div className="rounded-3xl border border-slate-200 bg-white p-4">
+              <p className="text-sm text-slate-500">Balance</p>
+              <p className={`mt-1 text-xl font-semibold ${totals.balance >= 0 ? 'text-green-600' : 'text-rose-600'}`}>{totals.balance.toFixed(1)}g</p>
             </div>
           </div>
         </Card>

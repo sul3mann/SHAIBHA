@@ -17,6 +17,12 @@ function formatDate(value: string) {
   })
 }
 
+function formatDisplayValue(value: number | string | null | undefined) {
+  const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value ?? '0'))
+  if (!Number.isFinite(parsed)) return '0'
+  return parsed.toString()
+}
+
 export default function EntriesPage() {
   const {
     entries,
@@ -140,23 +146,26 @@ export default function EntriesPage() {
       ) : (
         <div className="space-y-4">
           <div className="hidden overflow-x-auto sm:block">
-            <Table headers={['Date', 'Customer', 'Direction', 'Mode', 'Formula', '24K (g)', '21K (g)', 'Labour (g)', 'Labour Rate', 'Labour (SAR)', 'Total', 'Invoice']}>
+            <Table headers={['Date', 'Customer', 'Direction', 'Mode', 'Formula', '24K (g)', '21K (g)', 'Labour (g)', 'Labour Rate', 'Labour (SAR)', 'VAT', 'Total', 'Invoice', 'Notes', 'Photos']}>
               {entries.map((entry) => {
                 const customer = customers.find((item) => item.id === entry.customerId)
                 return (
                   <tr key={entry.id} className="border-b border-slate-200 last:border-b-0">
                     <td className="px-4 py-4 text-sm text-slate-900">{formatDate(entry.date)}</td>
                     <td className="px-4 py-4 text-sm text-slate-700">{customer?.fullName ?? 'Unknown'}</td>
-                    <td className="px-4 py-4 text-sm text-slate-700 capitalize">{entry.direction}</td>
-                    <td className="px-4 py-4 text-sm text-slate-700 capitalize">{entry.entryMode}</td>
-                    <td className="px-4 py-4 text-sm text-slate-700">{entry.formulaMethod}</td>
-                    <td className="px-4 py-4 text-sm text-slate-700">{(entry.weight24k ?? 0).toFixed(2)}</td>
-                    <td className="px-4 py-4 text-sm text-slate-700">{(entry.weight21k ?? 0).toFixed(2)}</td>
-                    <td className="px-4 py-4 text-sm text-slate-700">{(entry.labourWeight21k ?? 0).toFixed(2)}</td>
-                    <td className="px-4 py-4 text-sm text-slate-700">{(entry.labourRate ?? 0).toFixed(2)}</td>
-                    <td className="px-4 py-4 text-sm text-slate-700">{(entry.labourAmount ?? 0).toFixed(2)}</td>
-                    <td className="px-4 py-4 text-sm font-semibold text-slate-950">{entry.grandTotal.toFixed(2)}</td>
+                    <td className="px-4 py-4 text-sm text-slate-700">{entry.direction === 'receive' ? 'Gold Received' : 'Gold Given'}</td>
+                    <td className="px-4 py-4 text-sm text-slate-700">{entry.entryMode === 'gold' ? 'Gold Only' : entry.entryMode === 'labour' ? 'Labour Only' : 'Gold + Labour'}</td>
+                    <td className="px-4 py-4 text-sm text-slate-700">{entry.formulaMethod ? (entry.formulaMethod === 'method1' ? '×1.14' : entry.formulaMethod === 'method2' ? '×1.142' : '×(24/21)') : '—'}</td>
+                    <td className="px-4 py-4 text-sm text-slate-700">{formatDisplayValue(entry.weight24k)}</td>
+                    <td className="px-4 py-4 text-sm text-slate-700">{formatDisplayValue(entry.weight21k)}</td>
+                    <td className="px-4 py-4 text-sm text-slate-700">{formatDisplayValue(entry.labourWeight21k)}</td>
+                    <td className="px-4 py-4 text-sm text-slate-700">{formatDisplayValue(entry.labourRate)}</td>
+                    <td className="px-4 py-4 text-sm text-slate-700">{formatDisplayValue(entry.labourAmount)}</td>
+                    <td className="px-4 py-4 text-sm text-slate-700">{formatDisplayValue(entry.vatAmount)}</td>
+                    <td className="px-4 py-4 text-sm font-semibold text-slate-950">{formatDisplayValue(entry.grandTotal)}</td>
                     <td className="px-4 py-4 text-sm text-slate-700">{entry.invoiceNumber || '—'}</td>
+                    <td className="px-4 py-4 text-sm text-slate-700">{entry.notes ? 'Yes' : '—'}</td>
+                    <td className="px-4 py-4 text-sm text-slate-700">{entry.photos?.length ? `${entry.photos.length} photo${entry.photos.length > 1 ? 's' : ''}` : '—'}</td>
                     <td className="px-4 py-4 text-right text-sm text-slate-600">
                       <button className="mr-2 rounded-2xl bg-slate-100 p-2 text-slate-700 transition hover:bg-slate-200" onClick={() => openEdit(entry)} title="Edit">
                         ✎
@@ -184,13 +193,16 @@ export default function EntriesPage() {
                       <p className="text-sm font-semibold text-slate-950">{customer?.fullName ?? 'Unknown'}</p>
                       <p className="mt-1 text-sm text-slate-500">{formatDate(entry.date)}</p>
                     </div>
-                    <span className="rounded-full bg-gold/10 px-3 py-1 text-xs font-semibold text-gold capitalize">{entry.direction}</span>
+                    <span className="rounded-full bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">{entry.direction === 'receive' ? 'Gold Received' : 'Gold Given'}</span>
                   </div>
                   <div className="grid gap-2 text-sm text-slate-600">
-                    <p><span className="font-medium text-slate-900">24K:</span> {(entry.weight24k ?? 0).toFixed(2)}g</p>
-                    <p><span className="font-medium text-slate-900">21K:</span> {(entry.weight21k ?? 0).toFixed(2)}g</p>
-                    {entry.labourAmount ? <p><span className="font-medium text-slate-900">Labour:</span> {(entry.labourAmount ?? 0).toFixed(2)} SAR</p> : null}
-                    <p><span className="font-medium text-slate-900">Total:</span> {entry.grandTotal.toFixed(2)} SAR</p>
+                    <p><span className="font-medium text-slate-900">24K:</span> {formatDisplayValue(entry.weight24k)}g</p>
+                    <p><span className="font-medium text-slate-900">21K:</span> {formatDisplayValue(entry.weight21k)}g</p>
+                    {entry.labourAmount ? <p><span className="font-medium text-slate-900">Labour:</span> {formatDisplayValue(entry.labourAmount)} SAR</p> : null}
+                    <p><span className="font-medium text-slate-900">VAT:</span> {formatDisplayValue(entry.vatAmount)} SAR</p>
+                    <p><span className="font-medium text-slate-900">Total:</span> {formatDisplayValue(entry.grandTotal)} SAR</p>
+                    <p><span className="font-medium text-slate-900">Notes:</span> {entry.notes ? 'Yes' : 'No'}</p>
+                    {entry.photos?.length ? <p><span className="font-medium text-slate-900">Photos:</span> {entry.photos.length}</p> : null}
                   </div>
                   <div className="flex justify-end gap-2 border-t border-slate-200 pt-3">
                     <Button variant="outline" onClick={() => openEdit(entry)}>

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { loadCustomers } from '../services/customerService'
 import { loadEntries, loadSettings, addEntry, updateExistingEntry, deleteEntry, duplicateEntry } from '../services/entryService'
+import { LEDGER_CHANGED_EVENT } from '../services/ledgerService'
+import { addNotification } from '../services/notificationService'
 import type { Customer } from '../types/customer'
 import type { Entry, EntryFormValues } from '../types/entry'
 import type { WorkshopSettings } from '../types/settings'
@@ -18,9 +20,18 @@ export function useEntries() {
   const [deleteTarget, setDeleteTarget] = useState<Entry | null>(null)
 
   useEffect(() => {
-    setEntries(loadEntries())
-    setCustomers(loadCustomers())
-    setSettings(loadSettings())
+    const syncData = () => {
+      setEntries(loadEntries())
+      setCustomers(loadCustomers())
+      setSettings(loadSettings())
+    }
+
+    syncData()
+    window.addEventListener(LEDGER_CHANGED_EVENT, syncData)
+
+    return () => {
+      window.removeEventListener(LEDGER_CHANGED_EVENT, syncData)
+    }
   }, [])
 
   const filteredEntries = useMemo(() => {
@@ -59,9 +70,11 @@ export function useEntries() {
     if (selectedEntry) {
       const updated = updateExistingEntry(selectedEntry, values, settings)
       setEntries((current) => current.map((entry) => (entry.id === selectedEntry.id ? updated : entry)))
+      addNotification('Entry updated', 'success')
     } else {
       const created = addEntry(values, settings)
       setEntries((current) => [created, ...current])
+      addNotification('Entry added', 'success')
     }
 
     closeModal()
@@ -79,6 +92,7 @@ export function useEntries() {
     if (!deleteTarget) return
     deleteEntry(deleteTarget.id)
     setEntries((current) => current.filter((entry) => entry.id !== deleteTarget.id))
+    addNotification('Entry deleted', 'warning')
     setDeleteTarget(null)
   }
 
@@ -87,6 +101,7 @@ export function useEntries() {
     const duplicated = duplicateEntry(entry.id, settings)
     if (duplicated) {
       setEntries((current) => [duplicated, ...current])
+      addNotification('Entry duplicated', 'info')
     }
   }
 

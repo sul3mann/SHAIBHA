@@ -5,7 +5,7 @@ import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { loadCustomers } from '../services/customerService'
 import { loadEntries } from '../services/entryService'
-import { calculateCustomerLedgerSummary } from '../services/ledgerService'
+import { calculateCustomerLedgerSummary, LEDGER_CHANGED_EVENT } from '../services/ledgerService'
 import type { Customer } from '../types/customer'
 import type { Entry } from '../types/entry'
 
@@ -22,8 +22,17 @@ export default function Dashboard() {
   const [entries, setEntries] = useState<Entry[]>([])
 
   useEffect(() => {
-    setCustomers(loadCustomers())
-    setEntries(loadEntries())
+    const syncData = () => {
+      setCustomers(loadCustomers())
+      setEntries(loadEntries())
+    }
+
+    syncData()
+    window.addEventListener(LEDGER_CHANGED_EVENT, syncData)
+
+    return () => {
+      window.removeEventListener(LEDGER_CHANGED_EVENT, syncData)
+    }
   }, [])
 
   const stats = useMemo(() => {
@@ -33,13 +42,17 @@ export default function Dashboard() {
     let vatTotal = 0
 
     entries.forEach((entry) => {
+      const weight21k = Number(entry.weight21k ?? 0)
+      const labourAmount = Number(entry.labourAmount ?? 0)
+      const vatAmount = Number(entry.vatAmount ?? 0)
+
       if (entry.direction === 'receive') {
-        goldReceived += entry.weight21k ?? 0
+        goldReceived += weight21k
       } else {
-        goldGiven += entry.weight21k ?? 0
+        goldGiven += weight21k
       }
-      labourTotal += entry.labourAmount ?? 0
-      vatTotal += entry.vatAmount ?? 0
+      labourTotal += labourAmount
+      vatTotal += vatAmount
     })
 
     return {
@@ -147,7 +160,7 @@ export default function Dashboard() {
                     </div>
                     <div className="text-right">
                       <span className={`text-sm font-semibold ${entry.direction === 'receive' ? 'text-green-600' : 'text-rose-600'}`}>
-                        {entry.direction === 'receive' ? '+' : '-'} {(entry.weight21k ?? 0).toFixed(2)}g
+                        {entry.direction === 'receive' ? '+' : '-'} {Number(entry.weight21k ?? 0).toFixed(2)}g
                       </span>
                     </div>
                   </div>

@@ -23,9 +23,12 @@ export function CustomerCard({ customer, onEdit, onDelete, onView }: CustomerCar
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 cursor-pointer" onClick={handleView}>
-          <p className="text-sm font-semibold text-slate-950">{customer.fullName}</p>
-          <p className="mt-1 text-sm text-slate-600">{customer.city}</p>
+        <div className="flex flex-1 items-center gap-3 cursor-pointer" onClick={handleView}>
+          {customer.photo ? <img src={customer.photo} alt={customer.fullName} className="h-12 w-12 rounded-full object-cover" /> : <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gold/10 text-sm font-semibold text-gold">{customer.fullName.charAt(0).toUpperCase()}</div>}
+          <div>
+            <p className="text-sm font-semibold text-slate-950">{customer.fullName}</p>
+            <p className="mt-1 text-sm text-slate-600">{customer.city}</p>
+          </div>
         </div>
         <button
           className="rounded-2xl bg-gold/10 p-2 text-gold transition hover:bg-gold/20"

@@ -41,9 +41,9 @@ export function createEntry(values: EntryFormValues, settings: WorkshopSettings)
   const timestamp = new Date().toISOString()
   const formula = formulaMethods[values.formulaMethod]
 
-  let weight24k = values.weight24k ?? 0
-  let weight21k = values.weight21k ?? 0
-  let labourAmount = values.labourAmount ?? 0
+  let weight24k = Number(values.weight24k ?? 0)
+  let weight21k = Number(values.weight21k ?? 0)
+  let labourAmount = Number(values.labourAmount ?? 0)
 
   if (values.entryMode === 'gold' || values.entryMode === 'both') {
     if (weight24k > 0 && weight21k === 0) {
@@ -54,15 +54,15 @@ export function createEntry(values: EntryFormValues, settings: WorkshopSettings)
   }
 
   if (values.entryMode === 'labour' || values.entryMode === 'both') {
-    labourAmount = (values.labourWeight21k ?? 0) * (values.labourRate ?? 0)
+    labourAmount = Number(values.labourWeight21k ?? 0) * Number(values.labourRate ?? 0)
   }
 
   let vatAmount = 0
   if (values.vatEnabled) {
-    vatAmount = (labourAmount + weight24k * 100) * (settings.vatPercentage / 100)
+    vatAmount = labourAmount * (settings.vatPercentage / 100)
   }
 
-  const grandTotal = (weight24k * 100 || 0) + labourAmount + vatAmount
+  const grandTotal = labourAmount + vatAmount
 
   return {
     id: crypto.randomUUID(),
@@ -80,9 +80,9 @@ export function createEntry(values: EntryFormValues, settings: WorkshopSettings)
 export function updateEntry(entry: Entry, values: EntryFormValues, settings: WorkshopSettings): Entry {
   const formula = formulaMethods[values.formulaMethod]
 
-  let weight24k = values.weight24k ?? 0
-  let weight21k = values.weight21k ?? 0
-  let labourAmount = values.labourAmount ?? 0
+  let weight24k = Number(values.weight24k ?? 0)
+  let weight21k = Number(values.weight21k ?? 0)
+  let labourAmount = Number(values.labourAmount ?? 0)
 
   if (values.entryMode === 'gold' || values.entryMode === 'both') {
     if (weight24k > 0 && weight21k === 0) {
@@ -93,15 +93,15 @@ export function updateEntry(entry: Entry, values: EntryFormValues, settings: Wor
   }
 
   if (values.entryMode === 'labour' || values.entryMode === 'both') {
-    labourAmount = (values.labourWeight21k ?? 0) * (values.labourRate ?? 0)
+    labourAmount = Number(values.labourWeight21k ?? 0) * Number(values.labourRate ?? 0)
   }
 
   let vatAmount = 0
   if (values.vatEnabled) {
-    vatAmount = (labourAmount + weight24k * 100) * (settings.vatPercentage / 100)
+    vatAmount = labourAmount * (settings.vatPercentage / 100)
   }
 
-  const grandTotal = (weight24k * 100 || 0) + labourAmount + vatAmount
+  const grandTotal = labourAmount + vatAmount
 
   return {
     ...entry,

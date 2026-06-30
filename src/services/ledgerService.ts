@@ -2,6 +2,13 @@ import type { LedgerEntry, CustomerLedgerSummary } from '../types/ledger'
 import type { Entry } from '../types/entry'
 
 const LEDGER_STORAGE_KEY = 'shaibah_ledger'
+export const LEDGER_CHANGED_EVENT = 'shaibah:ledger-changed'
+
+function emitLedgerChanged() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(LEDGER_CHANGED_EVENT))
+  }
+}
 
 export function loadLedger(): LedgerEntry[] {
   if (typeof window === 'undefined') return []
@@ -16,6 +23,7 @@ export function loadLedger(): LedgerEntry[] {
 export function saveLedger(ledger: LedgerEntry[]) {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(LEDGER_STORAGE_KEY, JSON.stringify(ledger))
+  emitLedgerChanged()
 }
 
 export function syncEntryToLedger(entry: Entry) {
@@ -30,18 +38,19 @@ export function syncEntryToLedger(entry: Entry) {
     direction: entry.direction,
     entryMode: entry.entryMode,
     formulaMethod: entry.formulaMethod,
-    weight24k: entry.weight24k ?? 0,
-    weight21k: entry.weight21k ?? 0,
-    labourWeight21k: entry.labourWeight21k ?? 0,
-    labourRate: entry.labourRate ?? 0,
-    labourAmount: entry.labourAmount ?? 0,
+    weight24k: Number(entry.weight24k ?? 0),
+    weight21k: Number(entry.weight21k ?? 0),
+    labourWeight21k: Number(entry.labourWeight21k ?? 0),
+    labourRate: Number(entry.labourRate ?? 0),
+    labourAmount: Number(entry.labourAmount ?? 0),
     vatEnabled: entry.vatEnabled,
-    vatAmount: entry.vatAmount ?? 0,
+    vatAmount: Number(entry.vatAmount ?? 0),
     invoiceEnabled: entry.invoiceEnabled,
     invoiceNumber: entry.invoiceNumber,
     notes: entry.notes ?? '',
     photos: entry.photos ?? [],
     createdAt: entry.createdAt,
+    createdBy: 'System',
     grandTotal: entry.grandTotal,
   }
 

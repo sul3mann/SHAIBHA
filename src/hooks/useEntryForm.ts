@@ -57,24 +57,35 @@ export function useEntryForm(entry: Entry | null, settings: WorkshopSettings | n
       const updated = { ...prev, [field]: value }
 
       const formula = formulaMethods[updated.formulaMethod as FormulaMethod]
+      const numericValue = Number(value)
 
       if (updated.entryMode === 'gold' || updated.entryMode === 'both') {
-        if (field === 'weight24k' && value > 0) {
-          updated.weight21k = parseFloat((value * formula.factor).toFixed(4))
-        } else if (field === 'weight21k' && value > 0) {
-          updated.weight24k = parseFloat((value * formula.reverseFactor).toFixed(4))
+        if (field === 'weight24k') {
+          updated.weight21k = numericValue > 0 ? String(numericValue * formula.factor) : ''
+        } else if (field === 'weight21k') {
+          updated.weight24k = numericValue > 0 ? String(numericValue * formula.reverseFactor) : ''
+        } else if (field === 'formulaMethod') {
+          const current24k = Number(updated.weight24k)
+          const current21k = Number(updated.weight21k)
+          if (current24k > 0) {
+            updated.weight21k = String(current24k * formula.factor)
+          } else if (current21k > 0) {
+            updated.weight24k = String(current21k * formula.reverseFactor)
+          }
         }
       }
 
       if (updated.entryMode === 'labour' || updated.entryMode === 'both') {
         if (field === 'labourWeight21k' || field === 'labourRate') {
-          updated.labourAmount = parseFloat(((updated.labourWeight21k ?? 0) * (updated.labourRate ?? 0)).toFixed(2))
+          const labourWeight = Number(updated.labourWeight21k)
+          const labourRate = Number(updated.labourRate)
+          updated.labourAmount = labourWeight > 0 && labourRate > 0 ? String(labourWeight * labourRate) : ''
         }
       }
 
       if (updated.vatEnabled && settings) {
-        const baseAmount = (updated.weight24k ?? 0) * 100 + (updated.labourAmount ?? 0)
-        updated.vatAmount = parseFloat((baseAmount * (settings.vatPercentage / 100)).toFixed(2))
+        const labourAmount = Number(updated.labourAmount)
+        updated.vatAmount = labourAmount > 0 ? String(labourAmount * (settings.vatPercentage / 100)) : ''
       } else {
         updated.vatAmount = 0
       }
@@ -84,10 +95,9 @@ export function useEntryForm(entry: Entry | null, settings: WorkshopSettings | n
   }
 
   const calculateGrandTotal = () => {
-    const goldValue = (formData.weight24k ?? 0) * 100
-    const labour = formData.labourAmount ?? 0
-    const vat = formData.vatAmount ?? 0
-    return goldValue + labour + vat
+    const labour = Number(formData.labourAmount ?? 0)
+    const vat = Number(formData.vatAmount ?? 0)
+    return labour + vat
   }
 
   return {

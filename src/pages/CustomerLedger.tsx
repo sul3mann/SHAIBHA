@@ -4,7 +4,7 @@ import { Card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { BookOpen, ChevronRight } from 'lucide-react'
 import { loadCustomers } from '../services/customerService'
-import { calculateCustomerLedgerSummary } from '../services/ledgerService'
+import { calculateCustomerLedgerSummary, LEDGER_CHANGED_EVENT } from '../services/ledgerService'
 import type { Customer } from '../types/customer'
 
 export default function CustomerLedger() {
@@ -12,14 +12,23 @@ export default function CustomerLedger() {
   const [ledgerData, setLedgerData] = useState<Record<string, any>>({})
 
   useEffect(() => {
-    const loaded = loadCustomers()
-    setCustomers(loaded)
+    const syncLedgerData = () => {
+      const loaded = loadCustomers()
+      setCustomers(loaded)
 
-    const data: Record<string, any> = {}
-    loaded.forEach((customer) => {
-      data[customer.id] = calculateCustomerLedgerSummary(customer.id)
-    })
-    setLedgerData(data)
+      const data: Record<string, any> = {}
+      loaded.forEach((customer) => {
+        data[customer.id] = calculateCustomerLedgerSummary(customer.id)
+      })
+      setLedgerData(data)
+    }
+
+    syncLedgerData()
+    window.addEventListener(LEDGER_CHANGED_EVENT, syncLedgerData)
+
+    return () => {
+      window.removeEventListener(LEDGER_CHANGED_EVENT, syncLedgerData)
+    }
   }, [])
 
   return (

@@ -1,8 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { Resolver } from 'react-hook-form'
 import { X } from 'lucide-react'
+import { loadEntries } from '../services/entryService'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Textarea } from './ui/Textarea'
@@ -21,9 +23,9 @@ interface EntryFormProps {
 
 export function EntryForm({ entry, customers, settings, onSave, onCancel }: EntryFormProps) {
   const {
-    register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
     watch,
   } = useForm<EntryFormValues>({
@@ -49,19 +51,98 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
   })
 
   const { formData, updateField, calculateGrandTotal } = useEntryForm(entry, settings)
+  const navigate = useNavigate()
+  const [customerQuery, setCustomerQuery] = useState('')
+  const customerOptions = useMemo(() => {
+    const query = customerQuery.trim().toLowerCase()
+    return customers.filter((customer) => {
+      if (!query) return true
+      return [customer.fullName, customer.phoneNumber, customer.city, customer.address].join(' ').toLowerCase().includes(query)
+    })
+  }, [customerQuery, customers])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const entryMode = watch('entryMode')
   const invoiceEnabled = watch('invoiceEnabled')
-  const vatEnabled = watch('vatEnabled')
   const weight24k = watch('weight24k')
   const weight21k = watch('weight21k')
   const labourWeight = watch('labourWeight21k')
   const labourRate = watch('labourRate')
 
   useEffect(() => {
-    reset(formData)
-  }, [entry, settings, reset, formData])
+    reset({
+      customerId: entry?.customerId ?? '',
+      date: entry?.date ?? new Date().toISOString().slice(0, 10),
+      direction: entry?.direction ?? 'receive',
+      entryMode: entry?.entryMode ?? 'gold',
+      formulaMethod: entry?.formulaMethod ?? settings?.defaultFormula ?? 'method1',
+      weight24k: entry?.weight24k ?? 0,
+      weight21k: entry?.weight21k ?? 0,
+      labourWeight21k: entry?.labourWeight21k ?? 0,
+      labourRate: entry?.labourRate ?? 0,
+      labourAmount: entry?.labourAmount ?? 0,
+      vatEnabled: entry?.vatEnabled ?? false,
+      vatAmount: entry?.vatAmount ?? 0,
+      invoiceEnabled: entry?.invoiceEnabled ?? false,
+      invoiceNumber: entry?.invoiceNumber ?? '',
+      notes: entry?.notes ?? '',
+      photos: entry?.photos ?? [],
+    })
+  }, [entry, settings, reset])
+
+  const handleFieldChange = (field: keyof EntryFormValues, value: string | number | boolean | string[]) => {
+    const normalizedValue = value
+    const formula = formulaMethods[(formData.formulaMethod as keyof typeof formulaMethods) ?? 'method1']
+
+    let nextWeight24k = formData.weight24k
+    let nextWeight21k = formData.weight21k
+    let nextLabourAmount = formData.labourAmount
+
+    if (field === 'weight24k') {
+      const parsedValue = Number(value)
+      nextWeight21k = parsedValue > 0 ? String(parsedValue * formula.factor) : ''
+      nextWeight24k = typeof normalizedValue === 'string' || typeof normalizedValue === 'number' ? normalizedValue : ''
+    } else if (field === 'weight21k') {
+      const parsedValue = Number(value)
+      nextWeight24k = parsedValue > 0 ? String(parsedValue * formula.reverseFactor) : ''
+      nextWeight21k = typeof normalizedValue === 'string' || typeof normalizedValue === 'number' ? normalizedValue : ''
+    } else if (field === 'formulaMethod') {
+      const current24k = Number(formData.weight24k)
+      const current21k = Number(formData.weight21k)
+      if (current24k > 0) {
+        nextWeight21k = String(current24k * formula.factor)
+      } else if (current21k > 0) {
+        nextWeight24k = String(current21k * formula.reverseFactor)
+      }
+    } else if (field === 'labourWeight21k' || field === 'labourRate') {
+      const labourWeight = Number(field === 'labourWeight21k' ? value : formData.labourWeight21k)
+      const labourRate = Number(field === 'labourRate' ? value : formData.labourRate)
+      nextLabourAmount = labourWeight > 0 && labourRate > 0 ? String(labourWeight * labourRate) : ''
+    }
+
+    updateField(field as keyof EntryFormValues, normalizedValue as never)
+    setValue(field as keyof EntryFormValues, normalizedValue as never)
+
+    if (field === 'weight24k' || field === 'weight21k' || field === 'formulaMethod') {
+      setValue('weight24k', nextWeight24k as never)
+      setValue('weight21k', nextWeight21k as never)
+    }
+
+    if (field === 'labourWeight21k' || field === 'labourRate') {
+      setValue('labourAmount', nextLabourAmount as never)
+    }
+  }
+
+  const generateInvoiceNumber = () => {
+    const entries = loadEntries()
+    const usedNumbers = entries
+      .map((item) => item.invoiceNumber)
+      .filter((value): value is string => typeof value === 'string' && /^INV-\d+$/.test(value))
+      .map((value) => Number(value.replace('INV-', '')))
+
+    const next = usedNumbers.length ? Math.max(...usedNumbers) + 1 : 1
+    return `INV-${String(next).padStart(4, '0')}`
+  }
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -84,131 +165,191 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
 
   const grandTotal = calculateGrandTotal()
 
+  const formatDisplayValue = (value: number | string | null | undefined) => {
+    const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value ?? '0'))
+    if (!Number.isFinite(parsed)) return '0'
+    return parsed.toString()
+  }
+
+  useEffect(() => {
+    if (formData.invoiceEnabled && !formData.invoiceNumber) {
+      handleFieldChange('invoiceNumber', generateInvoiceNumber())
+    }
+  }, [formData.invoiceEnabled, formData.invoiceNumber])
+
   return (
-    <form onSubmit={handleSubmit(onSave)} className="space-y-8">
-      <div className="space-y-6 border-b border-slate-200 pb-6">
-        <h3 className="text-lg font-semibold text-slate-950">Customer & Date</h3>
-        <div className="grid gap-4 md:grid-cols-2">
+    <form onSubmit={handleSubmit(onSave)} className="space-y-3">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+        <div className="grid gap-3 md:grid-cols-2">
           <label className="grid gap-2 text-sm text-slate-700">
             <span>Customer</span>
-            <select
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20"
-              {...register('customerId')}
-            >
-              <option value="">Select a customer</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.fullName}
-                </option>
-              ))}
-            </select>
+            {customers.length === 0 ? (
+              <div className="space-y-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                <p className="text-sm text-slate-600">Create a customer before adding an entry.</p>
+                <Button type="button" variant="outline" onClick={() => navigate('/customers')}>
+                  Create customer
+                </Button>
+              </div>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={customerQuery}
+                  onChange={(event) => setCustomerQuery(event.target.value)}
+                  placeholder="Search customer"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20"
+                />
+                <select
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20"
+                  value={formData.customerId}
+                  onChange={(event) => handleFieldChange('customerId', event.target.value)}
+                >
+                  <option value="">Select a customer</option>
+                  {customerOptions.map((customer) => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.fullName}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
             {errors.customerId ? <p className="text-xs text-rose-600">{errors.customerId.message}</p> : null}
           </label>
-          <Input label="Date" type="date" {...register('date')} error={errors.date?.message} />
+          <Input label="Date" type="date" value={formData.date} onChange={(event) => handleFieldChange('date', event.target.value)} error={errors.date?.message} />
         </div>
       </div>
 
-      <div className="space-y-6 border-b border-slate-200 pb-6">
-        <h3 className="text-lg font-semibold text-slate-950">Transaction Type</h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2 text-sm text-slate-700">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-2 text-sm text-slate-700">
             <span>Direction</span>
-            <select className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20" {...register('direction')}>
-              <option value="receive">Receive</option>
-              <option value="give">Give</option>
-            </select>
-          </label>
-          <label className="grid gap-2 text-sm text-slate-700">
+            <div className="flex gap-2">
+              {(['receive', 'give'] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => handleFieldChange('direction', value)}
+                  className={`flex-1 rounded-2xl border px-4 py-3 text-sm font-medium transition ${formData.direction === value ? 'border-gold bg-gold text-black' : 'border-slate-200 bg-white text-slate-700 hover:border-gold'}`}
+                >
+                  {value === 'receive' ? 'Gold Received' : 'Gold Given'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-2 text-sm text-slate-700">
             <span>Entry Mode</span>
-            <select className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20" {...register('entryMode')}>
-              <option value="gold">Gold Only</option>
-              <option value="labour">Labour Only</option>
-              <option value="both">Both</option>
-            </select>
-          </label>
+            <div className="flex flex-wrap gap-2">
+              {([
+                { value: 'gold', label: 'Gold Only' },
+                { value: 'labour', label: 'Labour Only' },
+                { value: 'both', label: 'Gold + Labour' },
+              ] as const).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleFieldChange('entryMode', option.value)}
+                  className={`rounded-2xl border px-4 py-3 text-sm font-medium transition ${formData.entryMode === option.value ? 'border-gold bg-gold text-black' : 'border-slate-200 bg-white text-slate-700 hover:border-gold'}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-6 border-b border-slate-200 pb-6">
-        <h3 className="text-lg font-semibold text-slate-950">Gold Formula</h3>
-        <label className="grid gap-2 text-sm text-slate-700">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+        <div className="grid gap-2 text-sm text-slate-700">
           <span>Conversion Formula</span>
-          <select className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20" {...register('formulaMethod')}>
+          <div className="flex flex-wrap gap-2">
             {Object.entries(formulaMethods).map(([key, value]) => (
-              <option key={key} value={key}>
-                {value.label}
-              </option>
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleFieldChange('formulaMethod', key)}
+                className={`rounded-2xl border px-4 py-3 text-sm font-medium transition ${formData.formulaMethod === key ? 'border-gold bg-gold text-black' : 'border-slate-200 bg-white text-slate-700 hover:border-gold'}`}
+              >
+                {value.label.replace('Method 1: ', '').replace('Method 2: ', '').replace('Method 3: ', '')}
+              </button>
             ))}
-          </select>
-        </label>
+          </div>
+        </div>
       </div>
 
       {(entryMode === 'gold' || entryMode === 'both') && (
-        <div className="space-y-6 border-b border-slate-200 pb-6">
-          <h3 className="text-lg font-semibold text-slate-950">Gold Weight</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input label="24K Weight (g)" type="number" step="0.01" value={weight24k} onChange={(e) => updateField('weight24k', parseFloat(e.target.value) || 0)} />
-            <Input label="21K Weight (g)" type="number" step="0.01" value={weight21k} onChange={(e) => updateField('weight21k', parseFloat(e.target.value) || 0)} />
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+          <div className="grid gap-3 md:grid-cols-2">
+            <Input label="24K Weight (g)" type="text" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" value={weight24k ?? ''} onChange={(e) => handleFieldChange('weight24k', e.target.value)} />
+            <Input label="21K Weight (g)" type="text" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" value={weight21k ?? ''} onChange={(e) => handleFieldChange('weight21k', e.target.value)} />
           </div>
         </div>
       )}
 
       {(entryMode === 'labour' || entryMode === 'both') && (
-        <div className="space-y-6 border-b border-slate-200 pb-6">
-          <h3 className="text-lg font-semibold text-slate-950">Labour</h3>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Input label="21K Labour Weight (g)" type="number" step="0.01" value={labourWeight} onChange={(e) => updateField('labourWeight21k', parseFloat(e.target.value) || 0)} />
-            <Input label="Labour Rate (SAR/g)" type="number" step="0.01" value={labourRate} onChange={(e) => updateField('labourRate', parseFloat(e.target.value) || 0)} />
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+          <div className="grid gap-3 md:grid-cols-3">
+            <Input label="21K Labour Weight (g)" type="text" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" value={labourWeight ?? ''} onChange={(e) => handleFieldChange('labourWeight21k', e.target.value)} />
+            <Input label="Labour Rate (SAR/g)" type="text" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" value={labourRate ?? ''} onChange={(e) => handleFieldChange('labourRate', e.target.value)} />
             <div className="grid gap-2 text-sm text-slate-700">
               <span>Labour Amount</span>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900">
-                {(formData.labourAmount ?? 0).toFixed(2)} SAR
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
+                {formatDisplayValue(formData.labourAmount)} SAR
               </div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="space-y-6 border-b border-slate-200 pb-6">
-        <h3 className="text-lg font-semibold text-slate-950">VAT & Invoice</h3>
-        <div className="grid gap-4 md:grid-cols-2">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+        <div className="grid gap-3 md:grid-cols-2">
           <label className="flex items-center gap-3">
-            <input type="checkbox" {...register('vatEnabled')} className="h-4 w-4 rounded" />
+            <input type="checkbox" checked={Boolean(formData.vatEnabled)} onChange={(event) => handleFieldChange('vatEnabled', event.target.checked)} className="h-4 w-4 rounded" />
             <span className="text-sm text-slate-700">Enable VAT ({settings?.vatPercentage ?? 15}%)</span>
           </label>
           <label className="flex items-center gap-3">
-            <input type="checkbox" {...register('invoiceEnabled')} className="h-4 w-4 rounded" />
+            <input type="checkbox" checked={Boolean(formData.invoiceEnabled)} onChange={(event) => handleFieldChange('invoiceEnabled', event.target.checked)} className="h-4 w-4 rounded" />
             <span className="text-sm text-slate-700">Enable Invoice</span>
           </label>
         </div>
-        {invoiceEnabled && <Input label="Invoice Number" {...register('invoiceNumber')} error={errors.invoiceNumber?.message} />}
+        {invoiceEnabled && (
+          <Input
+            label="Invoice Number"
+            value={formData.invoiceNumber ?? ''}
+            onChange={(event) => handleFieldChange('invoiceNumber', event.target.value)}
+            error={errors.invoiceNumber?.message}
+          />
+        )}
       </div>
 
-      <div className="space-y-6 border-b border-slate-200 pb-6">
-        <h3 className="text-lg font-semibold text-slate-950">Summary</h3>
-        <div className="grid gap-3 rounded-3xl border border-gold/20 bg-gold/5 p-6">
-          <div className="flex justify-between text-sm">
-            <span className="text-slate-700">Labour Amount:</span>
-            <span className="font-medium text-slate-900">{(formData.labourAmount ?? 0).toFixed(2)} SAR</span>
+      <div className="rounded-2xl border border-gold/20 bg-gold/5 p-3">
+        <div className="grid gap-2 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-700">Gold:</span>
+            <span className="font-medium text-slate-900">24K {formatDisplayValue(formData.weight24k)}g / 21K {formatDisplayValue(formData.weight21k)}g</span>
           </div>
-          {vatEnabled && (
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-700">VAT ({settings?.vatPercentage ?? 15}%):</span>
-              <span className="font-medium text-slate-900">{(formData.vatAmount ?? 0).toFixed(2)} SAR</span>
-            </div>
-          )}
-          <div className="border-t border-gold/20 pt-3 text-lg font-semibold">
-            <div className="flex justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-700">Labour:</span>
+            <span className="font-medium text-slate-900">{formatDisplayValue(formData.labourAmount)} SAR</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-700">VAT:</span>
+            <span className="font-medium text-slate-900">{formatDisplayValue(formData.vatAmount)} SAR</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-700">Invoice:</span>
+            <span className="font-medium text-slate-900">{formData.invoiceNumber || '—'}</span>
+          </div>
+          <div className="border-t border-gold/20 pt-2 text-base font-semibold">
+            <div className="flex items-center justify-between">
               <span>Grand Total:</span>
-              <span className="text-gold">{grandTotal.toFixed(2)} SAR</span>
+              <span className="text-gold">{formatDisplayValue(grandTotal)} SAR</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="space-y-6 border-b border-slate-200 pb-6">
-        <h3 className="text-lg font-semibold text-slate-950">Photos</h3>
-        <div className="space-y-4">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+        <div className="space-y-3">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -237,7 +378,9 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
         </div>
       </div>
 
-      <Textarea label="Notes" {...register('notes')} />
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+        <Textarea label="Notes" value={formData.notes ?? ''} onChange={(event) => handleFieldChange('notes', event.target.value)} />
+      </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
         <Button variant="ghost" type="button" onClick={onCancel}>

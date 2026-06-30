@@ -5,6 +5,7 @@ import {
   saveCustomers,
   updateCustomerFromForm,
 } from '../services/customerService'
+import { addNotification } from '../services/notificationService'
 import type { Customer, CustomerFormValues } from '../types/customer'
 
 export type CustomerSortKey = 'fullName' | 'city' | 'createdAt' | 'updatedAt'
@@ -67,15 +68,26 @@ export function useCustomers() {
 
   const saveCustomer = (values: CustomerFormValues) => {
     if (selectedCustomer) {
-      setCustomers((current) =>
-        current.map((customer) =>
+      setCustomers((current) => {
+        const updated = current.map((customer) =>
           customer.id === selectedCustomer.id
             ? updateCustomerFromForm(customer, values)
             : customer,
-        ),
-      )
+        )
+        addNotification(`Customer updated: ${values.fullName}`, 'success')
+        return updated
+      })
     } else {
-      setCustomers((current) => [createCustomerFromForm(values), ...current])
+      const duplicate = customers.some((customer) => customer.fullName.toLowerCase() === values.fullName.toLowerCase())
+      if (duplicate) {
+        addNotification('Customer already exists', 'warning')
+        return
+      }
+      setCustomers((current) => {
+        const created = createCustomerFromForm(values)
+        addNotification(`Customer added: ${created.fullName}`, 'success')
+        return [created, ...current]
+      })
     }
 
     closeModal()
@@ -91,7 +103,11 @@ export function useCustomers() {
 
   const confirmDeleteCustomer = () => {
     if (!deleteTarget) return
-    setCustomers((current) => current.filter((customer) => customer.id !== deleteTarget.id))
+    setCustomers((current) => {
+      const remaining = current.filter((customer) => customer.id !== deleteTarget.id)
+      addNotification(`Customer deleted: ${deleteTarget.fullName}`, 'warning')
+      return remaining
+    })
     setDeleteTarget(null)
   }
 
