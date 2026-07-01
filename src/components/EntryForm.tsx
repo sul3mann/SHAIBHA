@@ -12,6 +12,7 @@ import { entrySchema, formulaMethods, type Entry, type EntryFormValues } from '.
 import type { Customer } from '../types/customer'
 import type { WorkshopSettings } from '../types/settings'
 import { useEntryForm } from '../hooks/useEntryForm'
+import { useLanguage } from '../context/LanguageContext'
 
 interface EntryFormProps {
   entry: Entry | null
@@ -22,6 +23,7 @@ interface EntryFormProps {
 }
 
 export function EntryForm({ entry, customers, settings, onSave, onCancel }: EntryFormProps) {
+  const { t } = useLanguage()
   const {
     handleSubmit,
     reset,
@@ -182,12 +184,12 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
       <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
         <div className="grid gap-3 md:grid-cols-2">
           <label className="grid gap-2 text-sm text-slate-700">
-            <span>Customer</span>
+            <span>{t('entryForm.customer')}</span>
             {customers.length === 0 ? (
               <div className="space-y-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
-                <p className="text-sm text-slate-600">Create a customer before adding an entry.</p>
+                <p className="text-sm text-slate-600">{t('entryForm.createCustomerBefore')}</p>
                 <Button type="button" variant="outline" onClick={() => navigate('/customers')}>
-                  Create customer
+                  {t('entryForm.createCustomer')}
                 </Button>
               </div>
             ) : (
@@ -196,7 +198,7 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
                   type="text"
                   value={customerQuery}
                   onChange={(event) => setCustomerQuery(event.target.value)}
-                  placeholder="Search customer"
+                  placeholder={t('entryForm.searchCustomer')}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20"
                 />
                 <select
@@ -204,7 +206,7 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
                   value={formData.customerId}
                   onChange={(event) => handleFieldChange('customerId', event.target.value)}
                 >
-                  <option value="">Select a customer</option>
+                  <option value="">{t('entryForm.selectCustomer')}</option>
                   {customerOptions.map((customer) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.fullName}
@@ -215,14 +217,14 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
             )}
             {errors.customerId ? <p className="text-xs text-rose-600">{errors.customerId.message}</p> : null}
           </label>
-          <Input label="Date" type="date" value={formData.date} onChange={(event) => handleFieldChange('date', event.target.value)} error={errors.date?.message} />
+          <Input label={t('entryForm.date')} type="date" value={formData.date} onChange={(event) => handleFieldChange('date', event.target.value)} error={errors.date?.message} />
         </div>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
         <div className="grid gap-3 md:grid-cols-2">
           <div className="grid gap-2 text-sm text-slate-700">
-            <span>Direction</span>
+            <span>{t('entryForm.direction')}</span>
             <div className="flex gap-2">
               {(['receive', 'give'] as const).map((value) => (
                 <button
@@ -231,18 +233,18 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
                   onClick={() => handleFieldChange('direction', value)}
                   className={`flex-1 rounded-2xl border px-4 py-3 text-sm font-medium transition ${formData.direction === value ? 'border-gold bg-gold text-black' : 'border-slate-200 bg-white text-slate-700 hover:border-gold'}`}
                 >
-                  {value === 'receive' ? 'Gold Received' : 'Gold Given'}
+                  {value === 'receive' ? t('entryForm.goldReceived') : t('entryForm.goldGiven')}
                 </button>
               ))}
             </div>
           </div>
           <div className="grid gap-2 text-sm text-slate-700">
-            <span>Entry Mode</span>
+            <span>{t('entryForm.entryMode')}</span>
             <div className="flex flex-wrap gap-2">
               {([
-                { value: 'gold', label: 'Gold Only' },
-                { value: 'labour', label: 'Labour Only' },
-                { value: 'both', label: 'Gold + Labour' },
+                { value: 'gold', label: t('entryForm.goldOnly') },
+                { value: 'labour', label: t('entryForm.labourOnly') },
+                { value: 'both', label: t('entryForm.goldPlusLabour') },
               ] as const).map((option) => (
                 <button
                   key={option.value}
@@ -260,7 +262,7 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
         <div className="grid gap-2 text-sm text-slate-700">
-          <span>Conversion Formula</span>
+          <span>{t('entryForm.conversionFormula')}</span>
           <div className="flex flex-wrap gap-2">
             {Object.entries(formulaMethods).map(([key, value]) => (
               <button
@@ -279,8 +281,8 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
       {(entryMode === 'gold' || entryMode === 'both') && (
         <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
           <div className="grid gap-3 md:grid-cols-2">
-            <Input label="24K Weight (g)" type="text" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" value={weight24k ?? ''} onChange={(e) => handleFieldChange('weight24k', e.target.value)} />
-            <Input label="21K Weight (g)" type="text" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" value={weight21k ?? ''} onChange={(e) => handleFieldChange('weight21k', e.target.value)} />
+            <Input label={t('entryForm.twentyFourKWeight')} type="text" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" value={weight24k ?? ''} onChange={(e) => handleFieldChange('weight24k', e.target.value)} />
+            <Input label={t('entryForm.twentyOneKWeight')} type="text" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" value={weight21k ?? ''} onChange={(e) => handleFieldChange('weight21k', e.target.value)} />
           </div>
         </div>
       )}
@@ -288,10 +290,10 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
       {(entryMode === 'labour' || entryMode === 'both') && (
         <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
           <div className="grid gap-3 md:grid-cols-3">
-            <Input label="21K Labour Weight (g)" type="text" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" value={labourWeight ?? ''} onChange={(e) => handleFieldChange('labourWeight21k', e.target.value)} />
-            <Input label="Labour Rate (SAR/g)" type="text" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" value={labourRate ?? ''} onChange={(e) => handleFieldChange('labourRate', e.target.value)} />
+            <Input label={t('entryForm.twentyOneKLabourWeight')} type="text" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" value={labourWeight ?? ''} onChange={(e) => handleFieldChange('labourWeight21k', e.target.value)} />
+            <Input label={t('entryForm.labourRate')} type="text" inputMode="decimal" pattern="[0-9]*[.,]?[0-9]*" value={labourRate ?? ''} onChange={(e) => handleFieldChange('labourRate', e.target.value)} />
             <div className="grid gap-2 text-sm text-slate-700">
-              <span>Labour Amount</span>
+              <span>{t('entryForm.labourAmount')}</span>
               <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
                 {formatDisplayValue(formData.labourAmount)} SAR
               </div>
@@ -304,16 +306,16 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
         <div className="grid gap-3 md:grid-cols-2">
           <label className="flex items-center gap-3">
             <input type="checkbox" checked={Boolean(formData.vatEnabled)} onChange={(event) => handleFieldChange('vatEnabled', event.target.checked)} className="h-4 w-4 rounded" />
-            <span className="text-sm text-slate-700">Enable VAT ({settings?.vatPercentage ?? 15}%)</span>
+            <span className="text-sm text-slate-700">{t('entryForm.enableVat')} ({settings?.vatPercentage ?? 15}%)</span>
           </label>
           <label className="flex items-center gap-3">
             <input type="checkbox" checked={Boolean(formData.invoiceEnabled)} onChange={(event) => handleFieldChange('invoiceEnabled', event.target.checked)} className="h-4 w-4 rounded" />
-            <span className="text-sm text-slate-700">Enable Invoice</span>
+            <span className="text-sm text-slate-700">{t('entryForm.enableInvoice')}</span>
           </label>
         </div>
         {invoiceEnabled && (
           <Input
-            label="Invoice Number"
+            label={t('entryForm.invoiceNumber')}
             value={formData.invoiceNumber ?? ''}
             onChange={(event) => handleFieldChange('invoiceNumber', event.target.value)}
             error={errors.invoiceNumber?.message}
@@ -324,24 +326,24 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
       <div className="rounded-2xl border border-gold/20 bg-gold/5 p-3">
         <div className="grid gap-2 text-sm">
           <div className="flex items-center justify-between">
-            <span className="text-slate-700">Gold:</span>
+            <span className="text-slate-700">{t('entryForm.gold')}:</span>
             <span className="font-medium text-slate-900">24K {formatDisplayValue(formData.weight24k)}g / 21K {formatDisplayValue(formData.weight21k)}g</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-slate-700">Labour:</span>
+            <span className="text-slate-700">{t('entryForm.labour')}:</span>
             <span className="font-medium text-slate-900">{formatDisplayValue(formData.labourAmount)} SAR</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-slate-700">VAT:</span>
+            <span className="text-slate-700">{t('entryForm.vat')}:</span>
             <span className="font-medium text-slate-900">{formatDisplayValue(formData.vatAmount)} SAR</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-slate-700">Invoice:</span>
+            <span className="text-slate-700">{t('entryForm.invoice')}:</span>
             <span className="font-medium text-slate-900">{formData.invoiceNumber || '—'}</span>
           </div>
           <div className="border-t border-gold/20 pt-2 text-base font-semibold">
             <div className="flex items-center justify-between">
-              <span>Grand Total:</span>
+              <span>{t('entryForm.grandTotal')}:</span>
               <span className="text-gold">{formatDisplayValue(grandTotal)} SAR</span>
             </div>
           </div>
@@ -355,7 +357,7 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
             onClick={() => fileInputRef.current?.click()}
             className="w-full rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-600 transition hover:border-gold hover:bg-gold/5"
           >
-            Click to upload or drag and drop photos
+            {t('entryForm.uploadPhotoHint')}
           </button>
           <input ref={fileInputRef} type="file" multiple accept="image/*" onChange={handlePhotoUpload} className="hidden" />
 
@@ -379,14 +381,14 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
-        <Textarea label="Notes" value={formData.notes ?? ''} onChange={(event) => handleFieldChange('notes', event.target.value)} />
+        <Textarea label={t('entryForm.notes')} value={formData.notes ?? ''} onChange={(event) => handleFieldChange('notes', event.target.value)} />
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
         <Button variant="ghost" type="button" onClick={onCancel}>
-          Cancel
+          {t('entryForm.cancel')}
         </Button>
-        <Button type="submit">{entry ? 'Update Entry' : 'Add Entry'}</Button>
+        <Button type="submit">{entry ? t('entryForm.updateEntry') : t('entryForm.addEntry')}</Button>
       </div>
     </form>
   )

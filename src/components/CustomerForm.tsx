@@ -6,6 +6,7 @@ import { customerSchema, type Customer, type CustomerFormValues } from '../types
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Textarea } from './ui/Textarea'
+import { useLanguage } from '../context/LanguageContext'
 
 interface CustomerFormProps {
   customer: Customer | null
@@ -14,6 +15,7 @@ interface CustomerFormProps {
 }
 
 export function CustomerForm({ customer, onSave, onCancel }: CustomerFormProps) {
+  const { t } = useLanguage()
   const {
     register,
     handleSubmit,
@@ -74,19 +76,19 @@ export function CustomerForm({ customer, onSave, onCancel }: CustomerFormProps) 
   return (
     <form onSubmit={handleSubmit(onSave)} className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
-        <Input label="Full Name" {...register('fullName')} error={errors.fullName?.message} />
-        <Input label="Phone Number" {...register('phoneNumber')} error={errors.phoneNumber?.message} />
-        <Input label="WhatsApp Number" {...register('whatsappNumber')} error={errors.whatsappNumber?.message} />
-        <Input label="City" {...register('city')} error={errors.city?.message} />
+        <Input label={t('customerForm.fullName')} {...register('fullName')} error={errors.fullName?.message} />
+        <Input label={t('customerForm.phoneNumber')} {...register('phoneNumber')} error={errors.phoneNumber?.message} />
+        <Input label={t('customerForm.whatsappNumber')} {...register('whatsappNumber')} error={errors.whatsappNumber?.message} />
+        <Input label={t('customerForm.city')} {...register('city')} error={errors.city?.message} />
       </div>
 
-      <Input label="Address" {...register('address')} error={errors.address?.message} />
-      <Textarea label="Notes" {...register('notes')} />
+      <Input label={t('customerForm.address')} {...register('address')} error={errors.address?.message} />
+      <Textarea label={t('customerForm.notes')} {...register('notes')} />
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-slate-950">Customer photo</p>
-          <button type="button" onClick={() => fileInputRef.current?.click()} className="text-sm font-medium text-gold">Upload photo</button>
+          <p className="text-sm font-semibold text-slate-950">{t('customerForm.customerPhoto')}</p>
+          <button type="button" onClick={() => fileInputRef.current?.click()} className="text-sm font-medium text-gold">{t('customerForm.uploadPhoto')}</button>
         </div>
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
         {photo ? (
@@ -97,15 +99,15 @@ export function CustomerForm({ customer, onSave, onCancel }: CustomerFormProps) 
             </button>
           </div>
         ) : (
-          <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">No photo selected yet.</div>
+          <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">{t('customerForm.noPhotoSelected')}</div>
         )}
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
         <Button variant="ghost" type="button" onClick={onCancel}>
-          Cancel
+          {t('customerForm.cancel')}
         </Button>
-        <Button type="submit">{customer ? 'Update Customer' : 'Add Customer'}</Button>
+        <Button type="submit">{customer ? t('customerForm.updateCustomer') : t('customerForm.addCustomer')}</Button>
       </div>
     </form>
   )

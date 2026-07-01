@@ -8,8 +8,10 @@ import { formulaMethods } from '../types/entry'
 import { loadSettings, saveSettings, exportData, importData, clearAllDataWithLedger } from '../services/entryService'
 import { addActivityLogEntry, buildBackupPayload, exportBackupJson, importBackupPayload, validateBackupPayload } from '../services/activityService'
 import type { WorkshopSettings } from '../types/settings'
+import { useLanguage } from '../context/LanguageContext'
 
 export default function SettingsPage() {
+  const { t } = useLanguage()
   const [settings, setSettings] = useState<WorkshopSettings | null>(null)
   const [localSettings, setLocalSettings] = useState<WorkshopSettings | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -117,7 +119,7 @@ export default function SettingsPage() {
     return (
       <div className="space-y-6">
         <Card>
-          <p className="text-sm text-slate-600">Loading settings...</p>
+          <p className="text-sm text-slate-600">{t('common.loading')}</p>
         </Card>
       </div>
     )
@@ -126,29 +128,27 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Settings</p>
-        <h1 className="mt-2 text-3xl font-semibold text-slate-950">Workshop settings</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-          Configure your workshop information, business rules, and system preferences.
-        </p>
+        <p className="text-sm uppercase tracking-[0.3em] text-slate-500">{t('common.settings')}</p>
+        <h1 className="mt-2 text-3xl font-semibold text-slate-950">{t('settings.title')}</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">{t('settings.description')}</p>
       </div>
 
       <Card className="space-y-6">
-        <h2 className="text-xl font-semibold text-slate-950">Workshop Information</h2>
+        <h2 className="text-xl font-semibold text-slate-950">{t('settings.workshopInfo')}</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <Input
-            label="Workshop Name"
+            label={t('settings.workshopName')}
             value={localSettings.workshopName}
             onChange={(e) => setLocalSettings({ ...localSettings, workshopName: e.target.value })}
           />
           <Input
-            label="Phone"
+            label={t('settings.phone')}
             value={localSettings.workshopPhone}
             onChange={(e) => setLocalSettings({ ...localSettings, workshopPhone: e.target.value })}
           />
           <div className="md:col-span-2">
             <Input
-              label="Address"
+              label={t('settings.address')}
               value={localSettings.workshopAddress}
               onChange={(e) => setLocalSettings({ ...localSettings, workshopAddress: e.target.value })}
             />
@@ -157,10 +157,10 @@ export default function SettingsPage() {
       </Card>
 
       <Card className="space-y-6">
-        <h2 className="text-xl font-semibold text-slate-950">Business Rules</h2>
+        <h2 className="text-xl font-semibold text-slate-950">{t('settings.businessRules')}</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2 text-sm text-slate-700">
-            <span>VAT Percentage</span>
+            <span>{t('settings.vatPercentage')}</span>
             <input
               type="number"
               step="0.01"
@@ -170,7 +170,7 @@ export default function SettingsPage() {
             />
           </label>
           <label className="grid gap-2 text-sm text-slate-700">
-            <span>Currency</span>
+            <span>{t('settings.currency')}</span>
             <input
               type="text"
               value={localSettings.currency}
@@ -179,7 +179,7 @@ export default function SettingsPage() {
             />
           </label>
           <label className="grid gap-2 text-sm text-slate-700 md:col-span-2">
-            <span>Default Gold Conversion Formula</span>
+            <span>{t('settings.defaultFormula')}</span>
             <select
               value={localSettings.defaultFormula}
               onChange={(e) => setLocalSettings({ ...localSettings, defaultFormula: e.target.value as any })}
@@ -196,24 +196,24 @@ export default function SettingsPage() {
       </Card>
 
       <Card className="space-y-4 border-t-2 border-gold pt-6">
-        <h2 className="text-xl font-semibold text-slate-950">Data Management</h2>
-        <p className="text-sm text-slate-600">Export your data, import previously exported data, or clear all data from the system.</p>
+        <h2 className="text-xl font-semibold text-slate-950">{t('settings.dataManagement')}</h2>
+        <p className="text-sm text-slate-600">{t('settings.dataDescription')}</p>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button variant="outline" onClick={handleExportData}>
             <Download className="mr-2 h-4 w-4" />
-            Export Data
+            {t('settings.exportData')}
           </Button>
           <Button variant="outline" onClick={handleImportData}>
             <Upload className="mr-2 h-4 w-4" />
-            Import Data
+            {t('settings.importData')}
           </Button>
           <Button variant="outline" onClick={handleBackupDownload}>
             <Download className="mr-2 h-4 w-4" />
-            Backup JSON
+            {t('settings.backupJson')}
           </Button>
           <Button variant="outline" onClick={handleBackupImport}>
             <Upload className="mr-2 h-4 w-4" />
-            Restore Backup
+            {t('settings.restoreBackup')}
           </Button>
           <Button
             variant="ghost"
@@ -221,23 +221,23 @@ export default function SettingsPage() {
             className="border border-rose-300 bg-rose-50 text-rose-600 hover:bg-rose-100"
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Clear All Data
+            {t('settings.clearAllData')}
           </Button>
         </div>
       </Card>
 
       <div className="flex justify-end">
         <Button onClick={handleSaveSettings} disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Save Settings'}
+          {isSaving ? t('common.loading') : t('common.saveSettings')}
         </Button>
       </div>
 
       <ConfirmDialog
         open={showClearConfirm}
-        title="Clear all data"
-        description="This will permanently delete all entries, customers, and settings. This action cannot be undone."
-        confirmLabel="Clear All"
-        cancelLabel="Cancel"
+        title={t('settings.clearAllTitle')}
+        description={t('settings.clearAllDescription')}
+        confirmLabel={t('settings.confirmClearAll')}
+        cancelLabel={t('settings.cancel')}
         onConfirm={handleClearAll}
         onCancel={() => setShowClearConfirm(false)}
       />

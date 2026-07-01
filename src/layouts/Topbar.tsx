@@ -9,7 +9,7 @@ import { useLanguage } from '../context/LanguageContext'
 export function Topbar() {
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
-  const { isUrdu, dir, language, setLanguage, t } = useLanguage()
+  const { language, setLanguage, isUrdu, t } = useLanguage()
 
   useEffect(() => {
     const sync = () => {
@@ -50,40 +50,40 @@ export function Topbar() {
             <Search className="h-4 w-4" />
             <input
               type="search"
-              placeholder={t('topbar.searchPlaceholder')}
+              placeholder="Search records"
               className="w-full bg-transparent text-sm outline-none"
             />
           </div>
-          <Button variant="ghost" className="hidden sm:inline-flex" onClick={() => setOpen((value) => !value)}>
-            {t('topbar.notifications')}
-          </Button>
           <button
             type="button"
             onClick={() => setLanguage(language === 'en' ? 'ur' : 'en')}
-            className="hidden rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:border-slate-300 sm:inline-flex"
+            className="hidden rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-300 sm:inline-flex"
           >
-            {t('toggleLanguage')}
+            {t('common.englishUrdu')}
           </button>
+          <Button variant="ghost" className="hidden sm:inline-flex" onClick={() => setOpen((value) => !value)}>
+            {t('common.notifications')}
+          </Button>
           <Link
             to="/settings"
             className="hidden rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:border-slate-300 sm:inline-flex"
           >
-            {t('topbar.settings')}
+            {t('common.settings')}
           </Link>
           <div className="relative">
             <button className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 shadow-sm transition hover:border-slate-300" onClick={() => setOpen((value) => !value)}>
               <Bell className="h-5 w-5" />
             </button>
             {open && (
-              <div className={`absolute right-0 mt-3 w-80 rounded-3xl border border-slate-200 bg-white p-4 shadow-xl ${dir === 'rtl' ? 'text-right' : 'text-left'}`}>
+              <div className="absolute right-0 mt-3 w-80 rounded-3xl border border-slate-200 bg-white p-4 shadow-xl">
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-slate-950">{t('topbar.notifications')}</p>
+                  <p className="text-sm font-semibold text-slate-950">{t('common.notifications')}</p>
                   <button type="button" onClick={() => setOpen(false)} className="rounded-full p-1 text-slate-500 hover:bg-slate-100">
                     <X className="h-4 w-4" />
                   </button>
                 </div>
                 {notifications.length === 0 ? (
-                  <p className="text-sm text-slate-600">{t('notifications.empty')}</p>
+                  <p className="text-sm text-slate-600">{t('common.emptyNotifications')}</p>
                 ) : (
                   <div className="space-y-2">
                     {notifications.map((notification) => (

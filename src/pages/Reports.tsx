@@ -14,6 +14,7 @@ import {
   type ReportFilters,
   type ReportType,
 } from '../utils/reports'
+import { useLanguage } from '../context/LanguageContext'
 
 const reportTypeOptions: Array<{ value: ReportType; label: string }> = [
   { value: 'daily', label: 'Daily report' },
@@ -37,6 +38,7 @@ function formatDate(value: string) {
 }
 
 export default function Reports() {
+  const { t, isUrdu } = useLanguage()
   const [entries, setEntries] = useState<Entry[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [reportType, setReportType] = useState<ReportType>('daily')
@@ -66,16 +68,14 @@ export default function Reports() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Reports</p>
-          <h1 className="mt-2 text-3xl font-semibold text-slate-950">Workshop reports and exports</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Review day-to-day movement, customer activity, labour, VAT, and invoices with filters and export support.
-          </p>
+          <p className="text-sm uppercase tracking-[0.3em] text-slate-500">{t('common.reportTitle')}</p>
+          <h1 className="mt-2 text-3xl font-semibold text-slate-950">{t('reports.title')}</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">{t('reports.description')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
-            Print
+            {t('common.print')}
           </Button>
           <Button variant="outline" onClick={handleExportCsv}>
             <Download className="mr-2 h-4 w-4" />
@@ -91,11 +91,11 @@ export default function Reports() {
       <Card className="space-y-4">
         <div className="flex items-center gap-2 text-slate-700">
           <Filter className="h-4 w-4 text-gold" />
-          <h2 className="text-lg font-semibold text-slate-950">Report filters</h2>
+          <h2 className="text-lg font-semibold text-slate-950">{t('reports.filters')}</h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <label className="space-y-2 text-sm text-slate-700">
-            <span className="block font-medium">Report type</span>
+            <span className="block font-medium">{t('reports.reportType')}</span>
             <select
               className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 outline-none"
               value={reportType}
@@ -103,13 +103,13 @@ export default function Reports() {
             >
               {reportTypeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {isUrdu ? option.label : option.label}
                 </option>
               ))}
             </select>
           </label>
           <label className="space-y-2 text-sm text-slate-700">
-            <span className="block font-medium">Start date</span>
+            <span className="block font-medium">{t('reports.startDate')}</span>
             <input
               type="date"
               className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 outline-none"
@@ -118,7 +118,7 @@ export default function Reports() {
             />
           </label>
           <label className="space-y-2 text-sm text-slate-700">
-            <span className="block font-medium">End date</span>
+            <span className="block font-medium">{t('reports.endDate')}</span>
             <input
               type="date"
               className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 outline-none"
@@ -127,13 +127,13 @@ export default function Reports() {
             />
           </label>
           <label className="space-y-2 text-sm text-slate-700">
-            <span className="block font-medium">Customer</span>
+            <span className="block font-medium">{t('reports.customer')}</span>
             <select
               className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 outline-none"
               value={filters.customerId}
               onChange={(event) => handleFilterChange('customerId', event.target.value)}
             >
-              <option value="">All customers</option>
+              <option value="">{isUrdu ? 'تمام مشتری' : 'All customers'}</option>
               {customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
                   {customer.fullName}
@@ -142,40 +142,40 @@ export default function Reports() {
             </select>
           </label>
           <label className="space-y-2 text-sm text-slate-700">
-            <span className="block font-medium">Direction</span>
+            <span className="block font-medium">{t('reports.direction')}</span>
             <select
               className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 outline-none"
               value={filters.direction}
               onChange={(event) => handleFilterChange('direction', event.target.value)}
             >
-              <option value="all">All directions</option>
-              <option value="receive">Gold Received</option>
-              <option value="give">Gold Given</option>
+              <option value="all">{isUrdu ? 'تمام سمتیں' : 'All directions'}</option>
+              <option value="receive">{t('entryForm.goldReceived')}</option>
+              <option value="give">{t('entryForm.goldGiven')}</option>
             </select>
           </label>
           <label className="space-y-2 text-sm text-slate-700">
-            <span className="block font-medium">Entry mode</span>
+            <span className="block font-medium">{t('reports.entryMode')}</span>
             <select
               className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 outline-none"
               value={filters.entryMode}
               onChange={(event) => handleFilterChange('entryMode', event.target.value)}
             >
-              <option value="all">All modes</option>
-              <option value="gold">Gold Only</option>
-              <option value="labour">Labour Only</option>
-              <option value="both">Gold + Labour</option>
+              <option value="all">{isUrdu ? 'تمام اقسام' : 'All modes'}</option>
+              <option value="gold">{t('entryForm.goldOnly')}</option>
+              <option value="labour">{t('entryForm.labourOnly')}</option>
+              <option value="both">{t('entryForm.goldPlusLabour')}</option>
             </select>
           </label>
           <label className="space-y-2 text-sm text-slate-700">
-            <span className="block font-medium">Invoice</span>
+            <span className="block font-medium">{t('reports.invoice')}</span>
             <select
               className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 outline-none"
               value={filters.invoiceFilter}
               onChange={(event) => handleFilterChange('invoiceFilter', event.target.value)}
             >
-              <option value="all">All invoices</option>
-              <option value="on">Invoice ON</option>
-              <option value="off">Invoice OFF</option>
+              <option value="all">{isUrdu ? 'تمام انوائس' : 'All invoices'}</option>
+              <option value="on">{isUrdu ? 'انوائس فعال' : 'Invoice ON'}</option>
+              <option value="off">{isUrdu ? 'انوائس غیر فعال' : 'Invoice OFF'}</option>
             </select>
           </label>
           <div className="flex items-end">
@@ -184,7 +184,7 @@ export default function Reports() {
               className="w-full"
               onClick={() => setFilters(getDefaultReportFilters())}
             >
-              Reset filters
+              {t('reports.resetFilters')}
             </Button>
           </div>
         </div>
@@ -192,10 +192,10 @@ export default function Reports() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: 'Total 24K received', value: `${reportPayload.summary.total24kReceived.toFixed(2)}g`, accent: 'text-gold' },
-          { label: 'Total 21K received', value: `${reportPayload.summary.total21kReceived.toFixed(2)}g`, accent: 'text-green-600' },
-          { label: 'Total 24K given', value: `${reportPayload.summary.total24kGiven.toFixed(2)}g`, accent: 'text-rose-600' },
-          { label: 'Total 21K given', value: `${reportPayload.summary.total21kGiven.toFixed(2)}g`, accent: 'text-slate-900' },
+          { label: t('reports.total24kReceived'), value: `${reportPayload.summary.total24kReceived.toFixed(2)}g`, accent: 'text-gold' },
+          { label: t('reports.total21kReceived'), value: `${reportPayload.summary.total21kReceived.toFixed(2)}g`, accent: 'text-green-600' },
+          { label: t('reports.total24kGiven'), value: `${reportPayload.summary.total24kGiven.toFixed(2)}g`, accent: 'text-rose-600' },
+          { label: t('reports.total21kGiven'), value: `${reportPayload.summary.total21kGiven.toFixed(2)}g`, accent: 'text-slate-900' },
         ].map((stat) => (
           <Card key={stat.label} className="space-y-2">
             <p className="text-sm font-medium text-slate-500">{stat.label}</p>
@@ -206,11 +206,11 @@ export default function Reports() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {[
-          { label: 'Net gold balance', value: `${reportPayload.summary.netGoldBalance.toFixed(2)}g`, accent: reportPayload.summary.netGoldBalance >= 0 ? 'text-gold' : 'text-rose-600' },
-          { label: 'Total labour', value: `SAR ${reportPayload.summary.totalLabour.toFixed(2)}`, accent: 'text-slate-900' },
-          { label: 'Total VAT', value: `SAR ${reportPayload.summary.totalVat.toFixed(2)}`, accent: 'text-slate-900' },
-          { label: 'Grand total', value: `SAR ${reportPayload.summary.grandTotal.toFixed(2)}`, accent: 'text-slate-900' },
-          { label: 'Entry count', value: reportPayload.summary.entryCount.toString(), accent: 'text-slate-900' },
+          { label: t('reports.netGoldBalance'), value: `${reportPayload.summary.netGoldBalance.toFixed(2)}g`, accent: reportPayload.summary.netGoldBalance >= 0 ? 'text-gold' : 'text-rose-600' },
+          { label: t('reports.totalLabour'), value: `SAR ${reportPayload.summary.totalLabour.toFixed(2)}`, accent: 'text-slate-900' },
+          { label: t('reports.totalVat'), value: `SAR ${reportPayload.summary.totalVat.toFixed(2)}`, accent: 'text-slate-900' },
+          { label: t('reports.grandTotal'), value: `SAR ${reportPayload.summary.grandTotal.toFixed(2)}`, accent: 'text-slate-900' },
+          { label: t('reports.entryCount'), value: reportPayload.summary.entryCount.toString(), accent: 'text-slate-900' },
         ].map((stat) => (
           <Card key={stat.label} className="space-y-2">
             <p className="text-sm font-medium text-slate-500">{stat.label}</p>
@@ -224,41 +224,41 @@ export default function Reports() {
           <div>
             <h2 className="text-xl font-semibold text-slate-950">{reportPayload.title}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              {reportPayload.filters.startDate || 'All dates'} to {reportPayload.filters.endDate || 'All dates'}
-              {reportPayload.filters.customerId ? ` • ${customers.find((customer) => customer.id === reportPayload.filters.customerId)?.fullName ?? 'Selected customer'}` : ''}
+              {reportPayload.filters.startDate || (isUrdu ? 'تمام تاریخیں' : 'All dates')} {isUrdu ? 'تک' : 'to'} {reportPayload.filters.endDate || (isUrdu ? 'تمام تاریخیں' : 'All dates')}
+              {reportPayload.filters.customerId ? ` • ${customers.find((customer) => customer.id === reportPayload.filters.customerId)?.fullName ?? (isUrdu ? 'منتخب مشتری' : 'Selected customer')}` : ''}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={handlePrint}>
               <Printer className="mr-2 h-4 w-4" />
-              Print report
+              {t('reports.printReport')}
             </Button>
             <Button variant="outline" onClick={handleExportCsv}>
               <Download className="mr-2 h-4 w-4" />
-              Export CSV
+              {t('reports.exportCsv')}
             </Button>
           </div>
         </div>
 
         {reportPayload.entries.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">
-            No matching entries for the current filters.
+            {t('reports.noEntries')}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-600">
-                  <th className="px-3 py-3">Date</th>
-                  <th className="px-3 py-3">Customer</th>
-                  <th className="px-3 py-3">Direction</th>
-                  <th className="px-3 py-3">Mode</th>
+                  <th className="px-3 py-3">{t('common.date')}</th>
+                  <th className="px-3 py-3">{t('common.customer')}</th>
+                  <th className="px-3 py-3">{t('reports.direction')}</th>
+                  <th className="px-3 py-3">{t('common.mode')}</th>
                   <th className="px-3 py-3">24K</th>
                   <th className="px-3 py-3">21K</th>
-                  <th className="px-3 py-3">Labour</th>
+                  <th className="px-3 py-3">{t('common.labourAmount')}</th>
                   <th className="px-3 py-3">VAT</th>
-                  <th className="px-3 py-3">Grand total</th>
-                  <th className="px-3 py-3">Invoice</th>
+                  <th className="px-3 py-3">{t('reports.grandTotal')}</th>
+                  <th className="px-3 py-3">{t('reports.invoice')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -290,7 +290,7 @@ export default function Reports() {
                 <p className="text-sm uppercase tracking-[0.3em] text-slate-500">{reportPayload.businessName}</p>
                 <h2 className="mt-2 text-2xl font-semibold">{reportPayload.title}</h2>
                 <p className="mt-2 text-sm text-slate-600">
-                  {reportPayload.filters.startDate || 'All dates'} to {reportPayload.filters.endDate || 'All dates'}
+                  {reportPayload.filters.startDate || (isUrdu ? 'تمام تاریخیں' : 'All dates')} {isUrdu ? 'تک' : 'to'} {reportPayload.filters.endDate || (isUrdu ? 'تمام تاریخیں' : 'All dates')}
                 </p>
               </div>
               <div className="text-right text-sm text-slate-600">
@@ -315,14 +315,14 @@ export default function Reports() {
               <table className="min-w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-600">
-                    <th className="px-3 py-3">Date</th>
-                    <th className="px-3 py-3">Customer</th>
-                    <th className="px-3 py-3">Direction</th>
-                    <th className="px-3 py-3">Mode</th>
+                    <th className="px-3 py-3">{t('common.date')}</th>
+                    <th className="px-3 py-3">{t('common.customer')}</th>
+                    <th className="px-3 py-3">{t('reports.direction')}</th>
+                    <th className="px-3 py-3">{t('common.mode')}</th>
                     <th className="px-3 py-3">21K</th>
-                    <th className="px-3 py-3">Labour</th>
+                    <th className="px-3 py-3">{t('common.labourAmount')}</th>
                     <th className="px-3 py-3">VAT</th>
-                    <th className="px-3 py-3">Total</th>
+                    <th className="px-3 py-3">{t('reports.grandTotal')}</th>
                   </tr>
                 </thead>
                 <tbody>
