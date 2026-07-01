@@ -16,6 +16,17 @@ export interface Customer extends CustomerFormValues {
   id: string
   createdAt: string
   updatedAt: string
+  createdByName?: string
+  createdByUsername?: string
+  createdByRole?: string
+  updatedByName?: string
+  updatedByUsername?: string
+  updatedByRole?: string
+  isDeleted?: boolean
+  deletedAt?: string
+  deletedByName?: string
+  deletedByUsername?: string
+  deletedByRole?: string
 }
 
 export interface CustomerWithLedger extends Customer {

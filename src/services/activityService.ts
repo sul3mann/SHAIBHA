@@ -6,6 +6,8 @@ import type { Entry } from '../types/entry'
 import type { LedgerEntry } from '../types/ledger'
 import type { WorkshopSettings } from '../types/settings'
 import { loadSettings, saveSettings } from './entryService'
+import { getCurrentSessionUser, loadUsers, saveUsers, setCurrentSessionUser } from './authService'
+import type { AuthUser } from '../types/auth'
 
 export interface ActivityLogEntry {
   id: string
@@ -13,6 +15,9 @@ export interface ActivityLogEntry {
   details: string
   createdAt: string
   createdBy?: string
+  userName?: string
+  username?: string
+  role?: string
 }
 
 export interface BackupPayload {
@@ -29,10 +34,15 @@ export interface BackupPayload {
     createdAt: string
   }>
   activityLog: ActivityLogEntry[]
+  users: AuthUser[]
+  authSessionUser?: AuthUser | null
+  language?: string
 }
 
 const STORAGE_KEY = 'shaibah_activity_log'
+const LEGACY_STORAGE_KEY = 'shaibha_activity_log'
 const BACKUP_DATE_KEY = 'shaibah_last_backup_date'
+const LEGACY_BACKUP_DATE_KEY = 'shaibha_last_backup_date'
 export const ACTIVITY_LOG_CHANGED_EVENT = 'shaibah:activity-log-changed'
 
 function emitActivityLogChanged() {
@@ -48,28 +58,42 @@ function getNotificationsStorageKey() {
 export function loadActivityLog(): ActivityLogEntry[] {
   if (typeof window === 'undefined') return []
 
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as ActivityLogEntry[]) : []
-  } catch {
-    return []
+  for (const key of [STORAGE_KEY, LEGACY_STORAGE_KEY]) {
+    try {
+      const raw = window.localStorage.getItem(key)
+      if (raw) {
+        const parsed = JSON.parse(raw) as ActivityLogEntry[]
+        if (key !== STORAGE_KEY) {
+          saveActivityLog(parsed)
+        }
+        return parsed
+      }
+    } catch {
+      continue
+    }
   }
+  return []
 }
 
 export function saveActivityLog(entries: ActivityLogEntry[]) {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
+  window.localStorage.removeItem(LEGACY_STORAGE_KEY)
   emitActivityLogChanged()
 }
 
 export function addActivityLogEntry(action: string, details: string, createdBy = 'System') {
   const entries = loadActivityLog()
+  const actor = getCurrentSessionUser()
   const nextEntry: ActivityLogEntry = {
     id: crypto.randomUUID(),
     action,
     details,
     createdAt: new Date().toISOString(),
-    createdBy,
+    createdBy: actor?.fullName ?? createdBy,
+    userName: actor?.fullName,
+    username: actor?.username,
+    role: actor?.role,
   }
 
   const next = [nextEntry, ...entries].slice(0, 300)
@@ -83,12 +107,13 @@ export function clearActivityLog() {
 
 export function getLastBackupDate() {
   if (typeof window === 'undefined') return null
-  return window.localStorage.getItem(BACKUP_DATE_KEY)
+  return window.localStorage.getItem(BACKUP_DATE_KEY) ?? window.localStorage.getItem(LEGACY_BACKUP_DATE_KEY)
 }
 
 export function setLastBackupDate(value: string) {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(BACKUP_DATE_KEY, value)
+  window.localStorage.removeItem(LEGACY_BACKUP_DATE_KEY)
 }
 
 export function buildBackupPayload(): BackupPayload {
@@ -101,6 +126,9 @@ export function buildBackupPayload(): BackupPayload {
     ledger: loadLedger(),
     notifications: loadNotifications(),
     activityLog: loadActivityLog(),
+    users: loadUsers(),
+    authSessionUser: getCurrentSessionUser(),
+    language: typeof window !== 'undefined' ? window.localStorage.getItem('shaibah_language') ?? 'en' : 'en',
   }
 }
 
@@ -129,6 +157,13 @@ export function importBackupPayload(payload: BackupPayload) {
   saveLedger(payload.ledger)
   saveNotifications(payload.notifications)
   saveActivityLog(payload.activityLog)
+  saveUsers(Array.isArray(payload.users) ? payload.users : loadUsers())
+  if (payload.authSessionUser) {
+    setCurrentSessionUser(payload.authSessionUser)
+  }
+  if (typeof window !== 'undefined' && payload.language) {
+    window.localStorage.setItem('shaibah_language', payload.language)
+  }
   setLastBackupDate(new Date().toISOString())
   return true
 }
@@ -160,7 +195,7 @@ export function clearAllWorkspaceData() {
     'shaibah_notifications',
     'shaibah_activity_log',
     'shaibah_last_backup_date',
-    'shaibah_gold_received_entries',
+    'shaibah_gold_received',
   ]
 
   keysToRemove.forEach((key) => window.localStorage.removeItem(key))

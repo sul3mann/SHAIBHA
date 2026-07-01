@@ -35,6 +35,7 @@ const translations = {
       export: 'Export',
       print: 'Print',
       settings: 'Settings',
+      logout: 'Logout',
       reportTitle: 'Report',
       remark: 'Remark / Customer',
       goldReceived: 'Gold Received',
@@ -191,6 +192,7 @@ const translations = {
       export: 'برآمد',
       print: 'پرنٹ',
       settings: 'ترتیبات',
+      logout: 'لاگ آؤٹ',
       reportTitle: 'رپورٹ',
       remark: 'نام / تفصیل',
       goldReceived: 'سونا وصول',
@@ -330,17 +332,20 @@ function getValue(value: Record<string, unknown>, path: string) {
 }
 
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined)
+const LANGUAGE_STORAGE_KEY = 'shaibah_language'
+const LEGACY_LANGUAGE_STORAGE_KEY = 'shaibha-language'
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
     if (typeof window === 'undefined') return 'en'
-    const stored = window.localStorage.getItem('shaibha-language')
+    const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_LANGUAGE_STORAGE_KEY)
     return stored === 'ur' ? 'ur' : 'en'
   })
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('shaibha-language', language)
+      window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language)
+      window.localStorage.removeItem(LEGACY_LANGUAGE_STORAGE_KEY)
     }
     document.documentElement.lang = language === 'ur' ? 'ur' : 'en'
     document.documentElement.dir = language === 'ur' ? 'rtl' : 'ltr'

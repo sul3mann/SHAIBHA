@@ -47,6 +47,8 @@ export interface ReportEntryRow {
   vatAmount: number
   grandTotal: number
   notes: string
+  enteredByName?: string
+  updatedByName?: string
 }
 
 export interface ReportPayload {
@@ -196,6 +198,8 @@ export function buildReportPayload(
       vatAmount: Number(entry.vatAmount ?? 0),
       grandTotal: Number(entry.grandTotal ?? 0),
       notes: entry.notes ?? '',
+      enteredByName: entry.enteredByName,
+      updatedByName: entry.updatedByName,
     })),
   }
 }

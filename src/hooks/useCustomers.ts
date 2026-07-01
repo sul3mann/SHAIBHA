@@ -12,7 +12,8 @@ import type { Customer, CustomerFormValues } from '../types/customer'
 export type CustomerSortKey = 'fullName' | 'city' | 'createdAt' | 'updatedAt'
 
 export function useCustomers() {
-  const [customers, setCustomers] = useState<Customer[]>([])
+  const [customers, setCustomers] = useState<Customer[]>(() => loadCustomers())
+  const [hasLoaded, setHasLoaded] = useState(false)
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<CustomerSortKey>('updatedAt')
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
@@ -20,12 +21,15 @@ export function useCustomers() {
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null)
 
   useEffect(() => {
-    setCustomers(loadCustomers())
+    const loaded = loadCustomers()
+    setCustomers(loaded)
+    setHasLoaded(true)
   }, [])
 
   useEffect(() => {
+    if (!hasLoaded) return
     saveCustomers(customers)
-  }, [customers])
+  }, [customers, hasLoaded])
 
   const filteredCustomers = useMemo(() => {
     const query = search.trim().toLowerCase()

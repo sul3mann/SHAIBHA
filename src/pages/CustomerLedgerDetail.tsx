@@ -207,6 +207,8 @@ export default function CustomerLedgerDetail() {
                 'Running Balance',
                 'Total (SAR)',
                 'Invoice',
+                'Entered By',
+                'Updated By',
               ]}
             >
               {filteredTransactions.map((entry) => (
@@ -224,6 +226,8 @@ export default function CustomerLedgerDetail() {
                   <td className={`px-4 py-4 text-sm font-semibold ${entry.runningBalance >= 0 ? 'text-green-600' : 'text-rose-600'}`}>{entry.runningBalance.toFixed(2)}g</td>
                   <td className="px-4 py-4 text-sm font-semibold text-slate-950">{entry.grandTotal.toFixed(2)}</td>
                   <td className="px-4 py-4 text-sm text-slate-700">{entry.invoiceNumber || '—'}</td>
+                  <td className="px-4 py-4 text-sm text-slate-700">{entry.enteredByName || '—'}</td>
+                  <td className="px-4 py-4 text-sm text-slate-700">{entry.updatedByName || '—'}</td>
                 </tr>
               ))}
             </Table>
@@ -262,6 +266,12 @@ export default function CustomerLedgerDetail() {
                       <span className="font-medium text-slate-900">Invoice:</span> {entry.invoiceNumber}
                     </p>
                   )}
+                  <p>
+                    <span className="font-medium text-slate-900">Entered By:</span> {entry.enteredByName || '—'}
+                  </p>
+                  <p>
+                    <span className="font-medium text-slate-900">Updated By:</span> {entry.updatedByName || '—'}
+                  </p>
                   {entry.notes ? (
                     <p className="flex items-start gap-2">
                       <FileText className="mt-0.5 h-4 w-4 text-slate-500" />

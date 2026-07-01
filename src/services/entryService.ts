@@ -3,9 +3,10 @@ import { formulaMethods } from '../types/entry'
 import type { WorkshopSettings } from '../types/settings'
 import { defaultSettings } from '../types/settings'
 import { syncEntryToLedger, removeEntryFromLedger, clearLedger } from './ledgerService'
+import { getCurrentSessionUser } from './authService'
 
-const ENTRIES_STORAGE_KEY = 'shaibah_entries'
-const SETTINGS_STORAGE_KEY = 'shaibah_settings'
+export const ENTRIES_STORAGE_KEY = 'shaibah_entries'
+export const SETTINGS_STORAGE_KEY = 'shaibah_settings'
 
 export function loadEntries(): Entry[] {
   if (typeof window === 'undefined') return []
@@ -39,6 +40,7 @@ export function saveSettings(settings: WorkshopSettings) {
 
 export function createEntry(values: EntryFormValues, settings: WorkshopSettings): Entry {
   const timestamp = new Date().toISOString()
+  const actor = getCurrentSessionUser()
   const formula = formulaMethods[values.formulaMethod]
 
   let weight24k = Number(values.weight24k ?? 0)
@@ -68,6 +70,12 @@ export function createEntry(values: EntryFormValues, settings: WorkshopSettings)
     id: crypto.randomUUID(),
     createdAt: timestamp,
     updatedAt: timestamp,
+    enteredByName: actor?.fullName,
+    enteredByUsername: actor?.username,
+    enteredByRole: actor?.role,
+    updatedByName: actor?.fullName,
+    updatedByUsername: actor?.username,
+    updatedByRole: actor?.role,
     ...values,
     weight24k,
     weight21k,
@@ -78,6 +86,7 @@ export function createEntry(values: EntryFormValues, settings: WorkshopSettings)
 }
 
 export function updateEntry(entry: Entry, values: EntryFormValues, settings: WorkshopSettings): Entry {
+  const actor = getCurrentSessionUser()
   const formula = formulaMethods[values.formulaMethod]
 
   let weight24k = Number(values.weight24k ?? 0)
@@ -106,6 +115,9 @@ export function updateEntry(entry: Entry, values: EntryFormValues, settings: Wor
   return {
     ...entry,
     ...values,
+    updatedByName: actor?.fullName,
+    updatedByUsername: actor?.username,
+    updatedByRole: actor?.role,
     weight24k,
     weight21k,
     labourAmount,
@@ -165,9 +177,10 @@ export function updateExistingEntry(entry: Entry, values: EntryFormValues, setti
 }
 
 export function deleteEntry(entryId: string) {
+  const actor = getCurrentSessionUser()
   const entries = loadEntries()
-  const filtered = entries.filter((e) => e.id !== entryId)
-  saveEntries(filtered)
+  const nextEntries = entries.map((entry) => (entry.id === entryId ? { ...entry, isDeleted: true, deletedAt: new Date().toISOString(), deletedByName: actor?.fullName, deletedByUsername: actor?.username, deletedByRole: actor?.role } : entry))
+  saveEntries(nextEntries)
   removeEntryFromLedger(entryId)
 }
 

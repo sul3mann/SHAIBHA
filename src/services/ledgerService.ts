@@ -50,8 +50,14 @@ export function syncEntryToLedger(entry: Entry) {
     notes: entry.notes ?? '',
     photos: entry.photos ?? [],
     createdAt: entry.createdAt,
-    createdBy: 'System',
+    createdBy: entry.enteredByName ? `${entry.enteredByName} (${entry.enteredByRole ?? 'User'})` : 'System',
     grandTotal: entry.grandTotal,
+    enteredByName: entry.enteredByName,
+    enteredByUsername: entry.enteredByUsername,
+    enteredByRole: entry.enteredByRole,
+    updatedByName: entry.updatedByName,
+    updatedByUsername: entry.updatedByUsername,
+    updatedByRole: entry.updatedByRole,
   }
 
   if (existingIndex !== -1) {

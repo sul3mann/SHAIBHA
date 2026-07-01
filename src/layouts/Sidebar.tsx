@@ -2,9 +2,18 @@ import { NavLink } from 'react-router-dom'
 import { navigation } from '../constants/navigation'
 import { classNames } from '../utils/classNames'
 import { useLanguage } from '../context/LanguageContext'
+import { getCurrentSessionUser } from '../services/authService'
 
 export function Sidebar() {
   const { isUrdu, t } = useLanguage()
+  const currentUser = getCurrentSessionUser()
+  const visibleNavigation = navigation.filter((item) => {
+    if (item.path === '/admin') {
+      return currentUser?.role === 'Super Admin' || currentUser?.role === 'Admin'
+    }
+    return true
+  })
+
   return (
     <aside className="hidden h-full w-72 shrink-0 flex-col gap-2 border-r border-slate-200 bg-white px-4 py-6 lg:flex">
       <div className="mb-8 px-2">
@@ -12,7 +21,7 @@ export function Sidebar() {
         <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">{isUrdu ? 'گولڈ ورکشاپ' : 'Gold Workshop'}</h1>
       </div>
       <nav className="space-y-1">
-        {navigation.map((item) => (
+        {visibleNavigation.map((item) => (
           <NavLink
             key={item.name}
             to={item.path}

@@ -140,10 +140,15 @@ export default function ActivityLog() {
                   <Badge tone={entry.action.includes('deleted') ? 'warning' : entry.action.includes('added') || entry.action.includes('import') ? 'success' : 'gold'}>{entry.action}</Badge>
                 </div>
                 <p className="text-sm text-slate-600">{entry.details}</p>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{entry.createdBy ?? 'System'}</p>
+                <div className="space-y-1 text-xs uppercase tracking-[0.2em] text-slate-400">
+                  <p>{entry.userName ?? entry.createdBy ?? 'System'}</p>
+                  <p>{entry.username ? `@${entry.username}` : '—'}</p>
+                  <p>{entry.role ?? '—'}</p>
+                </div>
               </div>
               <div className="text-sm text-slate-600">
                 <p>{formatDate(entry.createdAt)}</p>
+                <p className="mt-1 text-xs text-slate-500">{new Date(entry.createdAt).toLocaleTimeString()}</p>
               </div>
             </Card>
           ))}

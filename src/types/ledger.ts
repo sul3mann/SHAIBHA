@@ -20,6 +20,12 @@ export interface LedgerEntry {
   createdBy?: string
   createdAt: string
   grandTotal: number
+  enteredByName?: string
+  enteredByUsername?: string
+  enteredByRole?: string
+  updatedByName?: string
+  updatedByUsername?: string
+  updatedByRole?: string
 }
 
 export interface CustomerLedgerSummary {

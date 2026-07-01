@@ -1,6 +1,7 @@
 import type { Customer, CustomerFormValues } from '../types/customer'
+import { getCurrentSessionUser } from './authService'
 
-const STORAGE_KEY = 'shaibah_customers'
+export const STORAGE_KEY = 'shaibah_customers'
 
 export function loadCustomers(): Customer[] {
   if (typeof window === 'undefined') return []
@@ -19,19 +20,30 @@ export function saveCustomers(customers: Customer[]) {
 
 export function createCustomerFromForm(data: CustomerFormValues): Customer {
   const timestamp = new Date().toISOString()
+  const actor = getCurrentSessionUser()
 
   return {
     id: crypto.randomUUID(),
     createdAt: timestamp,
     updatedAt: timestamp,
+    createdByName: actor?.fullName,
+    createdByUsername: actor?.username,
+    createdByRole: actor?.role,
+    updatedByName: actor?.fullName,
+    updatedByUsername: actor?.username,
+    updatedByRole: actor?.role,
     ...data,
   }
 }
 
 export function updateCustomerFromForm(customer: Customer, data: CustomerFormValues): Customer {
+  const actor = getCurrentSessionUser()
   return {
     ...customer,
     ...data,
     updatedAt: new Date().toISOString(),
+    updatedByName: actor?.fullName,
+    updatedByUsername: actor?.username,
+    updatedByRole: actor?.role,
   }
 }

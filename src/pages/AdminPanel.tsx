@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Download, Upload, ShieldCheck, DatabaseZap, RefreshCw } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
@@ -116,9 +117,12 @@ export default function AdminPanel() {
       </div>
 
       <Card className="space-y-4">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-gold" />
-          <h2 className="text-xl font-semibold text-slate-950">Data health check</h2>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-gold" />
+            <h2 className="text-xl font-semibold text-slate-950">Data health check</h2>
+          </div>
+          <Link to="/admin/users" className="text-sm font-semibold text-gold">Manage approvals & users</Link>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">

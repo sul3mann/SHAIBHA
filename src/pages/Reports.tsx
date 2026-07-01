@@ -259,6 +259,8 @@ export default function Reports() {
                   <th className="px-3 py-3">VAT</th>
                   <th className="px-3 py-3">{t('reports.grandTotal')}</th>
                   <th className="px-3 py-3">{t('reports.invoice')}</th>
+                  <th className="px-3 py-3">Entered By</th>
+                  <th className="px-3 py-3">Updated By</th>
                 </tr>
               </thead>
               <tbody>
@@ -274,6 +276,8 @@ export default function Reports() {
                     <td className="px-3 py-3 text-slate-600">SAR {item.vatAmount.toFixed(2)}</td>
                     <td className="px-3 py-3 font-semibold text-slate-900">SAR {item.grandTotal.toFixed(2)}</td>
                     <td className="px-3 py-3 text-slate-600">{item.invoiceNumber}</td>
+                    <td className="px-3 py-3 text-slate-600">{item.enteredByName ?? '—'}</td>
+                    <td className="px-3 py-3 text-slate-600">{item.updatedByName ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>

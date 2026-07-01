@@ -36,4 +36,15 @@ export interface Entry extends EntryFormValues {
   grandTotal: number
   createdAt: string
   updatedAt: string
+  enteredByName?: string
+  enteredByUsername?: string
+  enteredByRole?: string
+  updatedByName?: string
+  updatedByUsername?: string
+  updatedByRole?: string
+  isDeleted?: boolean
+  deletedAt?: string
+  deletedByName?: string
+  deletedByUsername?: string
+  deletedByRole?: string
 }
