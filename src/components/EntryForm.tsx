@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { Resolver } from 'react-hook-form'
-import { X } from 'lucide-react'
+import { X, ZoomIn } from 'lucide-react'
 import { loadEntries } from '../services/entryService'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
@@ -13,6 +13,9 @@ import type { Customer } from '../types/customer'
 import type { WorkshopSettings } from '../types/settings'
 import { useEntryForm } from '../hooks/useEntryForm'
 import { useLanguage } from '../context/LanguageContext'
+import { Modal } from './ui/Modal'
+import { compressImageFile, formatBytes } from '../utils/imageCompression'
+import { ZoomableImage } from './ui/ZoomableImage'
 
 interface EntryFormProps {
   entry: Entry | null
@@ -55,6 +58,9 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
   const { formData, updateField, calculateGrandTotal } = useEntryForm(entry, settings)
   const navigate = useNavigate()
   const [customerQuery, setCustomerQuery] = useState('')
+  const [viewerOpen, setViewerOpen] = useState(false)
+  const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null)
+  const [photoMeta, setPhotoMeta] = useState<Record<number, { originalSizeBytes: number; compressedSizeBytes: number }>>({})
   const customerOptions = useMemo(() => {
     const query = customerQuery.trim().toLowerCase()
     return customers.filter((customer) => {
@@ -146,23 +152,38 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
     return `INV-${String(next).padStart(4, '0')}`
   }
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
 
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const base64 = reader.result as string
-        updateField('photos', [...(formData.photos || []), base64])
+    const uploads = await Promise.all(Array.from(files).map(async (file) => {
+      const result = await compressImageFile(file)
+      return {
+        dataUrl: result.dataUrl,
+        meta: { originalSizeBytes: result.originalSizeBytes, compressedSizeBytes: result.compressedSizeBytes },
       }
-      reader.readAsDataURL(file)
+    }))
+
+    const nextPhotos = [...(formData.photos || []), ...uploads.map((item) => item.dataUrl)]
+    updateField('photos', nextPhotos)
+
+    setPhotoMeta((current) => {
+      const next = { ...current }
+      uploads.forEach((item, index) => {
+        next[(formData.photos?.length ?? 0) + index] = item.meta
+      })
+      return next
     })
   }
 
   const removePhoto = (index: number) => {
     const updated = formData.photos?.filter((_, i) => i !== index) || []
     updateField('photos', updated)
+    setPhotoMeta((current) => {
+      const next = { ...current }
+      delete next[index]
+      return next
+    })
   }
 
   const grandTotal = calculateGrandTotal()
@@ -368,11 +389,26 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
                   <img src={photo} alt={`preview-${index}`} className="h-32 w-full rounded-2xl object-cover" />
                   <button
                     type="button"
+                    onClick={() => {
+                      setActivePhotoIndex(index)
+                      setViewerOpen(true)
+                    }}
+                    className="absolute left-2 top-2 rounded-full bg-slate-900/70 p-1 text-white"
+                  >
+                    <ZoomIn className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => removePhoto(index)}
                     className="absolute right-2 top-2 rounded-full bg-rose-600 p-1 text-white hover:bg-rose-700"
                   >
                     <X className="h-4 w-4" />
                   </button>
+                  {photoMeta[index] ? (
+                    <p className="mt-2 text-xs text-slate-500">
+                      {formatBytes(photoMeta[index].originalSizeBytes)} → {formatBytes(photoMeta[index].compressedSizeBytes)}
+                    </p>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -383,6 +419,12 @@ export function EntryForm({ entry, customers, settings, onSave, onCancel }: Entr
       <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
         <Textarea label={t('entryForm.notes')} value={formData.notes ?? ''} onChange={(event) => handleFieldChange('notes', event.target.value)} />
       </div>
+
+      <Modal open={viewerOpen} title={t('entryForm.uploadPhotoHint')} description="Compressed preview" onClose={() => setViewerOpen(false)}>
+        {activePhotoIndex !== null && formData.photos && formData.photos[activePhotoIndex] ? (
+          <ZoomableImage src={formData.photos[activePhotoIndex]} alt="Entry photo preview" />
+        ) : null}
+      </Modal>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
         <Button variant="ghost" type="button" onClick={onCancel}>
